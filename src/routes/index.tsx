@@ -19,19 +19,9 @@ export const Route = createFileRoute("/")({
 type Tab = "use" | "buy";
 
 const PACKAGES = [
-  { label: "Saa 1", price: "500 TZS" },
-  { label: "Saa 3", price: "800 TZS" },
-  { label: "Saa 12", price: "1,500 TZS" },
-  { label: "Siku 1", price: "2,000 TZS" },
-  { label: "Wiki 1", price: "10,000 TZS" },
-  { label: "Mwezi 1", price: "30,000 TZS" },
-];
-
-const PAYMENTS = [
-  { id: "mpesa", name: "M-Pesa", color: "#00A651" },
-  { id: "airtel", name: "Airtel Money", color: "#E60000" },
-  { id: "mixx", name: "Mixx by Yas", color: "#00B0F0" },
-  { id: "halo", name: "HaloPesa", color: "#F58220" },
+  { label: "Masaa 24", price: "1,000 TZS" },
+  { label: "Siku 7", price: "5,000 TZS" },
+  { label: "Mwezi 1", price: "20,000 TZS" },
 ];
 
 function Index() {
