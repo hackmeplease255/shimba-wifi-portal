@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Loader2, Wifi, Ticket, ShoppingCart, CreditCard, ChevronDown, Shield } from "lucide-react";
+import { ArrowRight, Loader2, Wifi, Ticket, ShoppingCart, CreditCard, ChevronDown, Shield, Phone } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
