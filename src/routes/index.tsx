@@ -1,12 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowRight, Loader2, Wifi, Ticket, ShoppingCart, CreditCard, ChevronDown, Shield, Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  ArrowRight,
+  Loader2,
+  Wifi,
+  Ticket,
+  ShoppingCart,
+  CreditCard,
+  ChevronDown,
+  Shield,
+  Phone,
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+} from "lucide-react";
+
+import { api, ApiError, type Package, type PaymentStatus, type Voucher } from "../lib/api/endpoints";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "SHIMBA WIFI — Unganisha kwa haraka" },
-      { name: "description", content: "SHIMBA WIFI hotspot portal. Tumia vocha yako au nunua kifurushi cha internet kwa haraka na salama." },
+      {
+        name: "description",
+        content:
+          "SHIMBA WIFI hotspot portal. Tumia vocha yako au nunua kifurushi cha internet kwa haraka na salama.",
+      },
       { property: "og:title", content: "SHIMBA WIFI" },
       { property: "og:description", content: "Portal ya SHIMBA WIFI — tumia au nunua vocha ya internet." },
       { property: "og:type", content: "website" },
@@ -18,36 +38,22 @@ export const Route = createFileRoute("/")({
 
 type Tab = "use" | "buy";
 
-const PACKAGES = [
-  { label: "Masaa 24", price: "1,000 TZS" },
-  { label: "Siku 7", price: "5,000 TZS" },
-  { label: "Mwezi 1", price: "20,000 TZS" },
-];
+function errorMessage(e: unknown): string {
+  if (e instanceof ApiError) return e.message;
+  if (e instanceof Error) return e.message;
+  return "Hitilafu isiyojulikana. Jaribu tena.";
+}
+
+function formatPrice(tzs: number): string {
+  return `${tzs.toLocaleString("en-US")} TZS`;
+}
 
 function Index() {
   const [tab, setTab] = useState<Tab>("use");
-  const [voucher, setVoucher] = useState("");
-  const [pkg, setPkg] = useState(PACKAGES[0].label);
-  const [phone, setPhone] = useState("");
-  
-  const [loading, setLoading] = useState(false);
-
-  const handleConnect = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1800);
-  };
-
-  const handlePay = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1800);
-  };
 
   return (
     <main className="min-h-screen w-full flex flex-col items-center px-4 py-8 sm:py-14">
       <div className="w-full max-w-[500px]">
-        {/* Header */}
         <header className="flex items-center gap-3 mb-6 px-1">
           <div className="relative h-12 w-12 rounded-2xl gradient-brand flex items-center justify-center shadow-[0_10px_30px_-10px_var(--brand-pink)]">
             <span className="text-white font-black text-2xl leading-none">S</span>
@@ -71,146 +77,29 @@ function Index() {
           </div>
         </header>
 
-        {/* Card */}
         <div className="glass-card rounded-3xl p-2 sm:p-3">
-          {/* Tabs */}
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/20 border border-white/5">
             <TabButton active={tab === "use"} onClick={() => setTab("use")} icon={<Ticket className="h-4 w-4" />} label="Tumia Vocha" />
             <TabButton active={tab === "buy"} onClick={() => setTab("buy")} icon={<ShoppingCart className="h-4 w-4" />} label="Nunua Vocha" />
           </div>
 
-          {/* Content */}
           <div className="p-4 sm:p-6">
             <div key={tab} className="animate-in fade-in-50 slide-in-from-bottom-2 duration-500">
-              {tab === "use" ? (
-                <form onSubmit={handleConnect} className="space-y-5">
-                  <div>
-                    <h2 className="text-lg font-bold">Tumia Vocha</h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Weka voucher uliyonunua ili kuanza kutumia internet.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Voucher Code
-                    </label>
-                    <div className="relative group">
-                      <input
-                        value={voucher}
-                        onChange={(e) => setVoucher(e.target.value)}
-                        placeholder="Ingiza Voucher Code"
-                        className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:bg-black/40 focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)]"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="group relative w-full h-14 rounded-2xl gradient-brand font-semibold text-white shadow-[0_15px_40px_-15px_var(--brand-purple)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_var(--brand-pink)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 overflow-hidden"
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    <span className="relative flex items-center justify-center gap-2">
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Inaunganisha...
-                        </>
-                      ) : (
-                        <>
-                          <ArrowRight className="h-5 w-5" />
-                          Unganisha na WiFi
-                        </>
-                      )}
-                    </span>
-                  </button>
-
-                  <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
-                    <Shield className="h-3.5 w-3.5" />
-                    Voucher yako itahakikiwa kabla ya kukupa internet.
-                  </p>
-                </form>
-              ) : (
-                <form onSubmit={handlePay} className="space-y-5">
-                  <div>
-                    <h2 className="text-lg font-bold">Nunua Vocha</h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Chagua kifurushi, weka namba ya simu, kisha lipa kupitia mtandao wako wa simu.
-                    </p>
-                  </div>
-
-                  {/* Package */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Kifurushi
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={pkg}
-                        onChange={(e) => setPkg(e.target.value)}
-                        className="w-full h-14 appearance-none rounded-2xl bg-black/30 border border-white/10 px-5 pr-12 text-base font-medium outline-none transition-all duration-300 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)]"
-                      >
-                        {PACKAGES.map((p) => (
-                          <option key={p.label} value={p.label} className="bg-[var(--navy)]">
-                            {p.label} — {p.price}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </div>
-
-                  {/* Phone */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Namba ya Simu
-                    </label>
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
-                      inputMode="numeric"
-                      pattern="0[67]\d{8}"
-                      placeholder="07XXXXXXXX au 06XXXXXXXX"
-                      className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)]"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="group relative w-full h-14 rounded-2xl gradient-brand font-semibold text-white shadow-[0_15px_40px_-15px_var(--brand-purple)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_var(--brand-pink)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 overflow-hidden"
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    <span className="relative flex items-center justify-center gap-2">
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Inatuma...
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="h-5 w-5" />
-                          Lipa Sasa
-                        </>
-                      )}
-                    </span>
-                  </button>
-
-                  <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                    Baada ya malipo kuthibitishwa, voucher itatengenezwa moja kwa moja na kuonyeshwa hapa pamoja na kutumwa kupitia SMS ikiwa huduma hiyo itawezeshwa.
-                  </p>
-                </form>
-              )}
+              {tab === "use" ? <UseVoucherForm /> : <BuyVoucherForm onVoucherIssued={() => setTab("use")} />}
             </div>
           </div>
         </div>
 
-        {/* Footer */}
         <footer className="mt-8 text-center space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs text-muted-foreground">
             <Phone className="h-3.5 w-3.5 text-[var(--brand-pink)]" />
-            <span>Msaada: Piga <a href="tel:0772940535" className="font-semibold text-foreground hover:text-[var(--brand-pink)] transition-colors">0772940535</a> kama una tatizo lolote</span>
+            <span>
+              Msaada: Piga{" "}
+              <a href="tel:0772940535" className="font-semibold text-foreground hover:text-[var(--brand-pink)] transition-colors">
+                0772940535
+              </a>{" "}
+              kama una tatizo lolote
+            </span>
           </div>
           <p className="text-xs text-muted-foreground">
             Powered by <span className="font-semibold text-gradient-brand">SHIMBA WIFI</span>
@@ -218,6 +107,428 @@ function Index() {
         </footer>
       </div>
     </main>
+  );
+}
+
+// ---------- Use Voucher ----------
+
+function UseVoucherForm() {
+  const [code, setCode] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: (voucherCode: string) => api.authenticateVoucher(voucherCode.trim()),
+    onSuccess: (data) => {
+      if (data.redirect_url) window.location.href = data.redirect_url;
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code.trim()) return;
+    mutation.mutate(code);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <h2 className="text-lg font-bold">Tumia Vocha</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Weka voucher uliyonunua ili kuanza kutumia internet.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Voucher Code
+        </label>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Ingiza Voucher Code"
+          autoComplete="off"
+          disabled={mutation.isPending}
+          className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:bg-black/40 focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)] disabled:opacity-60"
+        />
+      </div>
+
+      {mutation.isError && <ErrorBanner message={errorMessage(mutation.error)} />}
+
+      {mutation.isSuccess && !mutation.data.redirect_url && (
+        <SuccessBanner
+          title="Umeunganishwa!"
+          message="Voucher yako imeanza kutumika. Sasa unaweza kutumia internet."
+        />
+      )}
+
+      <PrimaryButton
+        pending={mutation.isPending}
+        pendingLabel="Inaunganisha..."
+        icon={<ArrowRight className="h-5 w-5" />}
+        label="Unganisha na WiFi"
+        disabled={!code.trim()}
+      />
+
+      <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
+        <Shield className="h-3.5 w-3.5" />
+        Voucher yako itahakikiwa kabla ya kukupa internet.
+      </p>
+    </form>
+  );
+}
+
+// ---------- Buy Voucher ----------
+
+function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
+  const packagesQuery = useQuery({
+    queryKey: ["packages"],
+    queryFn: ({ signal }) => api.listPackages(signal),
+    staleTime: 60_000,
+    retry: 1,
+  });
+
+  const [packageId, setPackageId] = useState<string>("");
+  const [phone, setPhone] = useState("");
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (packagesQuery.data && packagesQuery.data.length > 0 && !packageId) {
+      setPackageId(packagesQuery.data[0].id);
+    }
+  }, [packagesQuery.data, packageId]);
+
+  const createPayment = useMutation({
+    mutationFn: () => api.createPayment({ package_id: packageId, phone }),
+    onSuccess: (data) => setPaymentId(data.payment_id),
+  });
+
+  const statusQuery = useQuery({
+    queryKey: ["payment", paymentId],
+    queryFn: ({ signal }) => api.getPaymentStatus(paymentId!, signal),
+    enabled: !!paymentId,
+    refetchInterval: (q) => {
+      const s = q.state.data?.status;
+      return s && ["success", "failed", "cancelled"].includes(s) ? false : 3000;
+    },
+    retry: 2,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!packageId || !/^0[67]\d{8}$/.test(phone)) return;
+    createPayment.mutate();
+  };
+
+  const handleReset = () => {
+    setPaymentId(null);
+    createPayment.reset();
+  };
+
+  // Voucher issued
+  if (statusQuery.data?.status === "success" && statusQuery.data.voucher) {
+    return (
+      <VoucherIssuedView
+        voucher={statusQuery.data.voucher}
+        onUseNow={onVoucherIssued}
+        onBuyAnother={handleReset}
+      />
+    );
+  }
+
+  // Payment in flight
+  if (paymentId) {
+    return (
+      <PaymentInFlightView
+        status={statusQuery.data?.status ?? createPayment.data?.status ?? "pending"}
+        message={statusQuery.data?.message ?? createPayment.data?.message}
+        error={statusQuery.isError ? errorMessage(statusQuery.error) : null}
+        onCancel={handleReset}
+      />
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <h2 className="text-lg font-bold">Nunua Vocha</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Chagua kifurushi, weka namba ya simu, kisha lipa kupitia mtandao wako wa simu.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Kifurushi
+        </label>
+        <PackageSelect
+          query={packagesQuery}
+          value={packageId}
+          onChange={setPackageId}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Namba ya Simu
+        </label>
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
+          inputMode="numeric"
+          pattern="0[67]\d{8}"
+          placeholder="07XXXXXXXX au 06XXXXXXXX"
+          disabled={createPayment.isPending}
+          className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)] disabled:opacity-60"
+        />
+      </div>
+
+      {createPayment.isError && <ErrorBanner message={errorMessage(createPayment.error)} />}
+
+      <PrimaryButton
+        pending={createPayment.isPending}
+        pendingLabel="Inatuma..."
+        icon={<CreditCard className="h-5 w-5" />}
+        label="Lipa Sasa"
+        disabled={!packageId || !/^0[67]\d{8}$/.test(phone) || packagesQuery.isLoading}
+      />
+
+      <p className="text-xs text-muted-foreground text-center leading-relaxed">
+        Baada ya malipo kuthibitishwa, voucher itatengenezwa moja kwa moja na kuonyeshwa hapa.
+      </p>
+    </form>
+  );
+}
+
+function PackageSelect({
+  query,
+  value,
+  onChange,
+}: {
+  query: ReturnType<typeof useQuery<Package[], Error>>;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  if (query.isLoading) {
+    return (
+      <div className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 flex items-center gap-3 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Inapakia vifurushi...
+      </div>
+    );
+  }
+  if (query.isError) {
+    return <ErrorBanner message={errorMessage(query.error)} onRetry={() => query.refetch()} />;
+  }
+  const packages = query.data ?? [];
+  if (packages.length === 0) {
+    return <ErrorBanner message="Hakuna vifurushi vinavyopatikana kwa sasa." />;
+  }
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full h-14 appearance-none rounded-2xl bg-black/30 border border-white/10 px-5 pr-12 text-base font-medium outline-none transition-all duration-300 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)]"
+      >
+        {packages.map((p) => (
+          <option key={p.id} value={p.id} className="bg-[var(--navy)]">
+            {p.label} — {formatPrice(p.price_tzs)}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+    </div>
+  );
+}
+
+function PaymentInFlightView({
+  status,
+  message,
+  error,
+  onCancel,
+}: {
+  status: PaymentStatus;
+  message?: string;
+  error: string | null;
+  onCancel: () => void;
+}) {
+  const failed = status === "failed" || status === "cancelled" || !!error;
+  return (
+    <div className="space-y-5 py-2">
+      <div className="flex flex-col items-center text-center gap-4">
+        {failed ? (
+          <div className="h-16 w-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+            <AlertCircle className="h-8 w-8 text-red-400" />
+          </div>
+        ) : (
+          <div className="h-16 w-16 rounded-full gradient-brand flex items-center justify-center shadow-[0_15px_40px_-15px_var(--brand-pink)]">
+            <Loader2 className="h-8 w-8 text-white animate-spin" />
+          </div>
+        )}
+        <div>
+          <h3 className="text-lg font-bold">
+            {failed ? "Malipo hayakukamilika" : "Subiri malipo yathibitishwe"}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+            {error ??
+              message ??
+              (failed
+                ? "Tafadhali jaribu tena."
+                : "Angalia simu yako na thibitisha ombi la malipo lililotumwa.")}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="w-full h-12 rounded-2xl border border-white/10 bg-black/30 text-sm font-semibold hover:bg-black/40 transition-colors"
+      >
+        {failed ? "Jaribu Tena" : "Ghairi"}
+      </button>
+    </div>
+  );
+}
+
+function VoucherIssuedView({
+  voucher,
+  onUseNow,
+  onBuyAnother,
+}: {
+  voucher: Voucher;
+  onUseNow: () => void;
+  onBuyAnother: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(voucher.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col items-center text-center gap-3">
+        <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+          <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold">Malipo Yamekamilika</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Voucher yako iko tayari. Tumia nambari hii kuunganisha WiFi.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground text-center">
+          Voucher Code
+        </div>
+        <div className="text-center text-2xl sm:text-3xl font-black tracking-widest text-gradient-brand break-all">
+          {voucher.code}
+        </div>
+        <button
+          type="button"
+          onClick={copy}
+          className="w-full h-11 rounded-xl border border-white/10 bg-black/20 text-sm font-semibold hover:bg-black/40 transition-colors flex items-center justify-center gap-2"
+        >
+          <Copy className="h-4 w-4" />
+          {copied ? "Imenakiliwa" : "Nakili"}
+        </button>
+        <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-white/5">
+          <span>{voucher.package.label}</span>
+          <span>{formatPrice(voucher.package.price_tzs)}</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onUseNow}
+        className="group relative w-full h-14 rounded-2xl gradient-brand font-semibold text-white shadow-[0_15px_40px_-15px_var(--brand-purple)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_var(--brand-pink)] hover:-translate-y-0.5"
+      >
+        <span className="flex items-center justify-center gap-2">
+          <ArrowRight className="h-5 w-5" />
+          Tumia Sasa
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onBuyAnother}
+        className="w-full h-12 rounded-2xl border border-white/10 bg-black/20 text-sm font-semibold hover:bg-black/40 transition-colors"
+      >
+        Nunua Nyingine
+      </button>
+    </div>
+  );
+}
+
+// ---------- Shared UI ----------
+
+function PrimaryButton({
+  pending,
+  pendingLabel,
+  icon,
+  label,
+  disabled,
+}: {
+  pending: boolean;
+  pendingLabel: string;
+  icon: React.ReactNode;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={pending || disabled}
+      className="group relative w-full h-14 rounded-2xl gradient-brand font-semibold text-white shadow-[0_15px_40px_-15px_var(--brand-purple)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_var(--brand-pink)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0 disabled:cursor-not-allowed overflow-hidden"
+    >
+      <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+      <span className="relative flex items-center justify-center gap-2">
+        {pending ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin" />
+            {pendingLabel}
+          </>
+        ) : (
+          <>
+            {icon}
+            {label}
+          </>
+        )}
+      </span>
+    </button>
+  );
+}
+
+function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 flex items-start gap-3">
+      <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+      <div className="flex-1 text-sm text-red-100">{message}</div>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="text-xs font-semibold text-red-200 hover:text-white transition-colors underline underline-offset-2"
+        >
+          Jaribu Tena
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SuccessBanner({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-3">
+      <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+      <div className="flex-1 text-sm">
+        <div className="font-semibold text-emerald-100">{title}</div>
+        <div className="text-emerald-200/80 mt-0.5">{message}</div>
+      </div>
+    </div>
   );
 }
 
