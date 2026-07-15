@@ -207,17 +207,14 @@ function Index() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-8 text-center space-y-2">
+        <footer className="mt-8 text-center space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs text-muted-foreground">
+            <Phone className="h-3.5 w-3.5 text-[var(--brand-pink)]" />
+            <span>Msaada: Piga <a href="tel:0772940535" className="font-semibold text-foreground hover:text-[var(--brand-pink)] transition-colors">0772940535</a> kama una tatizo lolote</span>
+          </div>
           <p className="text-xs text-muted-foreground">
             Powered by <span className="font-semibold text-gradient-brand">SHIMBA WIFI</span>
           </p>
-          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground/80">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-            <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-            <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-            <a href="#" className="hover:text-foreground transition-colors">Support</a>
-          </div>
         </footer>
       </div>
     </main>
