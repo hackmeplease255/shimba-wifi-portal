@@ -29,7 +29,7 @@ function Index() {
   const [voucher, setVoucher] = useState("");
   const [pkg, setPkg] = useState(PACKAGES[0].label);
   const [phone, setPhone] = useState("");
-  const [pay, setPay] = useState("mpesa");
+  const [loading_unused, _setLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleConnect = (e: React.FormEvent) => {
