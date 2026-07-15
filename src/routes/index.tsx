@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Loader2, Wifi, Ticket, ShoppingCart, CreditCard, ChevronDown, Shield } from "lucide-react";
+import { ArrowRight, Loader2, Wifi, Ticket, ShoppingCart, CreditCard, ChevronDown, Shield, Phone } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,19 +19,9 @@ export const Route = createFileRoute("/")({
 type Tab = "use" | "buy";
 
 const PACKAGES = [
-  { label: "Saa 1", price: "500 TZS" },
-  { label: "Saa 3", price: "800 TZS" },
-  { label: "Saa 12", price: "1,500 TZS" },
-  { label: "Siku 1", price: "2,000 TZS" },
-  { label: "Wiki 1", price: "10,000 TZS" },
-  { label: "Mwezi 1", price: "30,000 TZS" },
-];
-
-const PAYMENTS = [
-  { id: "mpesa", name: "M-Pesa", color: "#00A651" },
-  { id: "airtel", name: "Airtel Money", color: "#E60000" },
-  { id: "mixx", name: "Mixx by Yas", color: "#00B0F0" },
-  { id: "halo", name: "HaloPesa", color: "#F58220" },
+  { label: "Masaa 24", price: "1,000 TZS" },
+  { label: "Siku 7", price: "5,000 TZS" },
+  { label: "Mwezi 1", price: "20,000 TZS" },
 ];
 
 function Index() {
@@ -39,7 +29,7 @@ function Index() {
   const [voucher, setVoucher] = useState("");
   const [pkg, setPkg] = useState(PACKAGES[0].label);
   const [phone, setPhone] = useState("");
-  const [pay, setPay] = useState("mpesa");
+  
   const [loading, setLoading] = useState(false);
 
   const handleConnect = (e: React.FormEvent) => {
@@ -186,45 +176,6 @@ function Index() {
                     />
                   </div>
 
-                  {/* Payment */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Njia ya Malipo
-                    </label>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      {PAYMENTS.map((p) => {
-                        const active = pay === p.id;
-                        return (
-                          <button
-                            type="button"
-                            key={p.id}
-                            onClick={() => setPay(p.id)}
-                            className={`relative h-16 rounded-2xl border text-left px-3 transition-all duration-300 overflow-hidden ${
-                              active
-                                ? "border-transparent bg-black/40 shadow-[0_10px_30px_-15px_var(--brand-pink)]"
-                                : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-black/30"
-                            }`}
-                          >
-                            {active && (
-                              <span className="absolute inset-0 rounded-2xl p-px gradient-brand">
-                                <span className="block h-full w-full rounded-[calc(1rem-1px)] bg-[var(--navy)]" />
-                              </span>
-                            )}
-                            <span className="relative flex items-center gap-2.5 h-full">
-                              <span
-                                className="h-8 w-8 rounded-lg flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-                                style={{ backgroundColor: p.color }}
-                              >
-                                {p.name.slice(0, 1)}
-                              </span>
-                              <span className="text-sm font-semibold leading-tight">{p.name}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   <button
                     type="submit"
                     disabled={loading}
@@ -256,17 +207,14 @@ function Index() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-8 text-center space-y-2">
+        <footer className="mt-8 text-center space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs text-muted-foreground">
+            <Phone className="h-3.5 w-3.5 text-[var(--brand-pink)]" />
+            <span>Msaada: Piga <a href="tel:0772940535" className="font-semibold text-foreground hover:text-[var(--brand-pink)] transition-colors">0772940535</a> kama una tatizo lolote</span>
+          </div>
           <p className="text-xs text-muted-foreground">
             Powered by <span className="font-semibold text-gradient-brand">SHIMBA WIFI</span>
           </p>
-          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground/80">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-            <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-            <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-            <a href="#" className="hover:text-foreground transition-colors">Support</a>
-          </div>
         </footer>
       </div>
     </main>
