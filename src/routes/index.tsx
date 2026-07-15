@@ -176,45 +176,6 @@ function Index() {
                     />
                   </div>
 
-                  {/* Payment */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Njia ya Malipo
-                    </label>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      {PAYMENTS.map((p) => {
-                        const active = pay === p.id;
-                        return (
-                          <button
-                            type="button"
-                            key={p.id}
-                            onClick={() => setPay(p.id)}
-                            className={`relative h-16 rounded-2xl border text-left px-3 transition-all duration-300 overflow-hidden ${
-                              active
-                                ? "border-transparent bg-black/40 shadow-[0_10px_30px_-15px_var(--brand-pink)]"
-                                : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-black/30"
-                            }`}
-                          >
-                            {active && (
-                              <span className="absolute inset-0 rounded-2xl p-px gradient-brand">
-                                <span className="block h-full w-full rounded-[calc(1rem-1px)] bg-[var(--navy)]" />
-                              </span>
-                            )}
-                            <span className="relative flex items-center gap-2.5 h-full">
-                              <span
-                                className="h-8 w-8 rounded-lg flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-                                style={{ backgroundColor: p.color }}
-                              >
-                                {p.name.slice(0, 1)}
-                              </span>
-                              <span className="text-sm font-semibold leading-tight">{p.name}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   <button
                     type="submit"
                     disabled={loading}
