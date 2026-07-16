@@ -116,7 +116,7 @@ function UseVoucherForm() {
   const [code, setCode] = useState("");
 
   const mutation = useMutation({
-    mutationFn: (voucherCode: string) => api.authenticateVoucher(voucherCode.trim()),
+    mutationFn: (voucherCode: string) => api.activateVoucher(voucherCode.trim()),
     onSuccess: (data) => {
       if (data.redirect_url) window.location.href = data.redirect_url;
     },

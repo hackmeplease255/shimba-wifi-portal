@@ -36,10 +36,14 @@ export const api = {
   },
 
   // Voucher auth (Tumia Vocha)
-  authenticateVoucher: (code: string, signal?: AbortSignal) =>
-    apiRequest<VoucherAuthResponse>("/api/auth/voucher", {
+  activateVoucher: (code: string, macAddress: string, ipAddress?: string, signal?: AbortSignal) =>
+    apiRequest<VoucherActivateResponse>("/api/vouchers/activate", {
       method: "POST",
-      body: { code },
+      body: {
+        code: code.toUpperCase().trim(),
+        mac_address: macAddress.toUpperCase(),
+        ip_address: ipAddress || "",
+      },
       signal,
     }),
 
