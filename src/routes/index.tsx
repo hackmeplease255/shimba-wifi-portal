@@ -221,17 +221,30 @@ function UseVoucherForm({ onBuyVoucher }: { onBuyVoucher: () => void }) {
 // ---------- Buy Voucher ----------
 
 function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
+  // Load cached packages instantly, then refresh in background
+  const cachedPkgs = (() => {
+    try { const r = localStorage.getItem("shimba_pkgs"); return r ? JSON.parse(r) : undefined; } catch { return undefined; }
+  })();
+
   const packagesQuery = useQuery({
     queryKey: ["packages"],
     queryFn: ({ signal }) => api.listPackages(signal),
     staleTime: 60_000,
     retry: 1,
+    placeholderData: cachedPkgs,
   });
 
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [phone, setPhone] = useState("");
   const [reference, setReference] = useState<string | null>(null);
+
+  // Save packages to localStorage when loaded fresh
+  useEffect(() => {
+    if (packagesQuery.data) {
+      try { localStorage.setItem("shimba_pkgs", JSON.stringify(packagesQuery.data)); } catch {}
+    }
+  }, [packagesQuery.data]);
 
   useEffect(() => {
     if (packagesQuery.data && packagesQuery.data.length > 0 && selectedPackageId === null) {
@@ -365,12 +378,9 @@ function PackageSelect({
   selectedId: number | null;
   onChange: (id: number) => void;
 }) {
+  // Loading: return nothing. Packages show instantly from cache or after fetch.
   if (query.isLoading) {
-    return (
-      <div className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 flex items-center gap-3 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Inapakia vifurushi...
-      </div>
-    );
+    return null;
   }
   if (query.isError) {
     return <ErrorBanner message={errorMessage(query.error)} onRetry={() => query.refetch()} />;
