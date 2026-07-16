@@ -45,7 +45,7 @@ export const api = {
 
   // Payments (Nunua Vocha to Mongike)
   createPayment: (payload: PaymentRequest, signal?: AbortSignal) =>
-    apiRequest<PaymentCreatedResponse>("/api/payments/create", {
+    apiRequest<PaymentCreatedResponse>("/api/payments/mongike", {
       method: "POST",
       body: payload,
       signal,
