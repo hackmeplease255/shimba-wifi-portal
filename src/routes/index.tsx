@@ -16,7 +16,7 @@ import {
   Copy,
 } from "lucide-react";
 
-import { api, ApiError, type Package, type PaymentStatus, type Voucher } from "../lib/api/endpoints";
+import { api, ApiError, type Package, type PaymentStatus } from "../lib/api/endpoints";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,7 +85,7 @@ function Index() {
 
           <div className="p-4 sm:p-6">
             <div key={tab} className="animate-in fade-in-50 slide-in-from-bottom-2 duration-500">
-              {tab === "use" ? <UseVoucherForm /> : <BuyVoucherForm onVoucherIssued={() => setTab("use")} />}
+              {tab === "use" ? <UseVoucherForm onBuyVoucher={() => setTab("buy")} /> : <BuyVoucherForm onVoucherIssued={() => setTab("use")} />}
             </div>
           </div>
         </div>
@@ -112,21 +112,59 @@ function Index() {
 
 // ---------- Use Voucher ----------
 
-function UseVoucherForm() {
+function getMacFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("mac") || "";
+}
+
+function getIpFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("ip") || "";
+}
+
+function getVoucherErrorInfo(error: unknown): { message: string } | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.code === "NOT_FOUND") {
+    return {
+      message:
+        "Vocha uliyoitingiza haipo. Tafadhali bonyeza Nunua Vocha na ununue vocha.",
+    };
+  }
+  if (error.code === "VOUCHER_ALREADY_USED") {
+    return {
+      message:
+        "Vocha hii tayari imetumika. Bonyeza Nunua Vocha na ununue vocha mpya.",
+    };
+  }
+  return null;
+}
+
+function UseVoucherForm({ onBuyVoucher }: { onBuyVoucher: () => void }) {
   const [code, setCode] = useState("");
+  const macAddress = getMacFromUrl();
+  const ipAddress = getIpFromUrl();
 
   const mutation = useMutation({
-    mutationFn: (voucherCode: string) => api.activateVoucher(voucherCode.trim()),
-    onSuccess: (data) => {
-      if (data.redirect_url) window.location.href = data.redirect_url;
+    mutationFn: (voucherCode: string) =>
+      api.activateVoucher(voucherCode.trim(), macAddress, ipAddress),
+    onSuccess: () => {
+      // Activation succeeded — session and IP binding created
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
+    if (!macAddress) {
+      // If no MAC in URL, the user may not be on the MikroTik network
+      alert("Tafadhali unganisha kwenye mtandao wa SHIMBA WIFI kwanza.");
+      return;
+    }
     mutation.mutate(code);
   };
+
+  // Determine if the error is a voucher-specific error
+  const voucherError = mutation.isError ? getVoucherErrorInfo(mutation.error) : null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -151,9 +189,13 @@ function UseVoucherForm() {
         />
       </div>
 
-      {mutation.isError && <ErrorBanner message={errorMessage(mutation.error)} />}
+      {voucherError ? (
+        <VoucherErrorBanner message={voucherError.message} onBuyVoucher={onBuyVoucher} />
+      ) : (
+        mutation.isError && <ErrorBanner message={errorMessage(mutation.error)} />
+      )}
 
-      {mutation.isSuccess && !mutation.data.redirect_url && (
+      {mutation.isSuccess && (
         <SuccessBanner
           title="Umeunganishwa!"
           message="Voucher yako imeanza kutumika. Sasa unaweza kutumia internet."
@@ -186,48 +228,63 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
     retry: 1,
   });
 
-  const [packageId, setPackageId] = useState<string>("");
+  const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [phone, setPhone] = useState("");
-  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [reference, setReference] = useState<string | null>(null);
 
   useEffect(() => {
-    if (packagesQuery.data && packagesQuery.data.length > 0 && !packageId) {
-      setPackageId(packagesQuery.data[0].id);
+    if (packagesQuery.data && packagesQuery.data.length > 0 && selectedPackageId === null) {
+      const first = packagesQuery.data[0];
+      setSelectedPackageId(first.id);
+      setSelectedPackage(first);
     }
-  }, [packagesQuery.data, packageId]);
+  }, [packagesQuery.data, selectedPackageId]);
+
+  // Track the selected package for display in voucher view
+  const handlePackageChange = (id: number) => {
+    setSelectedPackageId(id);
+    const pkg = packagesQuery.data?.find((p) => p.id === id) ?? null;
+    setSelectedPackage(pkg);
+  };
 
   const createPayment = useMutation({
-    mutationFn: () => api.createPayment({ package_id: packageId, phone }),
-    onSuccess: (data) => setPaymentId(data.payment_id),
+    mutationFn: () =>
+      api.createPayment({ package_id: selectedPackageId!, phone }),
+    onSuccess: (data) => setReference(data.orderReference),
   });
 
   const statusQuery = useQuery({
-    queryKey: ["payment", paymentId],
-    queryFn: ({ signal }) => api.getPaymentStatus(paymentId!, signal),
-    enabled: !!paymentId,
+    queryKey: ["payment", reference],
+    queryFn: ({ signal }) => api.getPaymentStatus(reference!, signal),
+    enabled: !!reference,
     refetchInterval: (q) => {
-      const s = q.state.data?.status;
-      return s && ["success", "failed", "cancelled"].includes(s) ? false : 3000;
+      const d = q.state.data;
+      if (!d) return 3000;
+      return d.paid || d.status === "FAILED" ? false : 3000;
     },
     retry: 2,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!packageId || !/^0[67]\d{8}$/.test(phone)) return;
+    if (!selectedPackageId || !/^0[67]\d{8}$/.test(phone)) return;
     createPayment.mutate();
   };
 
   const handleReset = () => {
-    setPaymentId(null);
+    setReference(null);
     createPayment.reset();
   };
 
-  // Voucher issued
-  if (statusQuery.data?.status === "success" && statusQuery.data.voucher) {
+  // Voucher issued — payment confirmed and voucher_code received
+  const paymentData = statusQuery.data;
+  if (paymentData?.paid && paymentData.voucher_code) {
     return (
       <VoucherIssuedView
-        voucher={statusQuery.data.voucher}
+        code={paymentData.voucher_code}
+        packageName={selectedPackage?.name ?? null}
+        packagePrice={selectedPackage?.price ?? null}
         onUseNow={onVoucherIssued}
         onBuyAnother={handleReset}
       />
@@ -235,11 +292,12 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
   }
 
   // Payment in flight
-  if (paymentId) {
+  if (reference) {
+    const isFailed = paymentData?.status === "FAILED" || createPayment.isError;
     return (
       <PaymentInFlightView
-        status={statusQuery.data?.status ?? createPayment.data?.status ?? "pending"}
-        message={statusQuery.data?.message ?? createPayment.data?.message}
+        failed={isFailed}
+        message={createPayment.isError ? errorMessage(createPayment.error) : paymentData ? undefined : undefined}
         error={statusQuery.isError ? errorMessage(statusQuery.error) : null}
         onCancel={handleReset}
       />
@@ -261,8 +319,8 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
         </label>
         <PackageSelect
           query={packagesQuery}
-          value={packageId}
-          onChange={setPackageId}
+          selectedId={selectedPackageId}
+          onChange={handlePackageChange}
         />
       </div>
 
@@ -277,7 +335,7 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
           pattern="0[67]\d{8}"
           placeholder="07XXXXXXXX au 06XXXXXXXX"
           disabled={createPayment.isPending}
-          className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)] disabled:opacity-60"
+          className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:bg-black/40 focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)] disabled:opacity-60"
         />
       </div>
 
@@ -288,7 +346,7 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
         pendingLabel="Inatuma..."
         icon={<CreditCard className="h-5 w-5" />}
         label="Lipa Sasa"
-        disabled={!packageId || !/^0[67]\d{8}$/.test(phone) || packagesQuery.isLoading}
+        disabled={!selectedPackageId || !/^0[67]\d{8}$/.test(phone) || packagesQuery.isLoading}
       />
 
       <p className="text-xs text-muted-foreground text-center leading-relaxed">
@@ -300,12 +358,12 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
 
 function PackageSelect({
   query,
-  value,
+  selectedId,
   onChange,
 }: {
   query: ReturnType<typeof useQuery<Package[], Error>>;
-  value: string;
-  onChange: (v: string) => void;
+  selectedId: number | null;
+  onChange: (id: number) => void;
 }) {
   if (query.isLoading) {
     return (
@@ -317,19 +375,15 @@ function PackageSelect({
   if (query.isError) {
     return <ErrorBanner message={errorMessage(query.error)} onRetry={() => query.refetch()} />;
   }
-  if (!Array.isArray(query.data)) {
-    console.warn("PackageSelect: query.data is not an array", typeof query.data, query.data);
-    return <ErrorBanner message="Hakuna vifurushi vinavyopatikana kwa sasa." />;
-  }
-  const packages = query.data;
+  const packages = query.data ?? [];
   if (packages.length === 0) {
     return <ErrorBanner message="Hakuna vifurushi vinavyopatikana kwa sasa." />;
   }
   return (
     <div className="relative">
       <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={selectedId ?? ""}
+        onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-14 appearance-none rounded-2xl bg-black/30 border border-white/10 px-5 pr-12 text-base font-medium outline-none transition-all duration-300 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)]"
       >
         {packages.map((p) => (
@@ -344,17 +398,16 @@ function PackageSelect({
 }
 
 function PaymentInFlightView({
-  status,
+  failed,
   message,
   error,
   onCancel,
 }: {
-  status: PaymentStatus;
+  failed: boolean;
   message?: string;
   error: string | null;
   onCancel: () => void;
 }) {
-  const failed = status === "failed" || status === "cancelled" || !!error;
   return (
     <div className="space-y-5 py-2">
       <div className="flex flex-col items-center text-center gap-4">
@@ -392,18 +445,22 @@ function PaymentInFlightView({
 }
 
 function VoucherIssuedView({
-  voucher,
+  code,
+  packageName,
+  packagePrice,
   onUseNow,
   onBuyAnother,
 }: {
-  voucher: Voucher;
+  code: string;
+  packageName: string | null;
+  packagePrice: number | null;
   onUseNow: () => void;
   onBuyAnother: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(voucher.code);
+      await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -430,7 +487,7 @@ function VoucherIssuedView({
           Voucher Code
         </div>
         <div className="text-center text-2xl sm:text-3xl font-black tracking-widest text-gradient-brand break-all">
-          {voucher.code}
+          {code}
         </div>
         <button
           type="button"
@@ -440,10 +497,12 @@ function VoucherIssuedView({
           <Copy className="h-4 w-4" />
           {copied ? "Imenakiliwa" : "Nakili"}
         </button>
-        <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-white/5">
-          <span>{voucher.package.name}</span>
-          <span>{formatPrice(voucher.package.price)}</span>
-        </div>
+        {(packageName || packagePrice) && (
+          <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-white/5">
+            <span>{packageName ?? "—"}</span>
+            <span>{packagePrice !== null ? formatPrice(packagePrice) : "—"}</span>
+          </div>
+        )}
       </div>
 
       <button
@@ -524,6 +583,25 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => vo
   );
 }
 
+function VoucherErrorBanner({ message, onBuyVoucher }: { message: string; onBuyVoucher: () => void }) {
+  return (
+    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+        <div className="flex-1 text-sm text-red-100">{message}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onBuyVoucher}
+        className="w-full h-11 rounded-xl gradient-brand text-white text-sm font-semibold hover:shadow-[0_10px_30px_-10px_var(--brand-pink)] transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.98]"
+      >
+        <ShoppingCart className="h-4 w-4" />
+        Nunua Vocha
+      </button>
+    </div>
+  );
+}
+
 function SuccessBanner({ title, message }: { title: string; message: string }) {
   return (
     <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-start gap-3">
@@ -562,4 +640,3 @@ function TabButton({
     </button>
   );
 }
-
