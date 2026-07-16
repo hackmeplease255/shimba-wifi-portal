@@ -334,7 +334,7 @@ function PackageSelect({
       >
         {packages.map((p) => (
           <option key={p.id} value={p.id} className="bg-[var(--navy)]">
-            {p.label} — {formatPrice(p.price_tzs)}
+            {p.label} — {formatPrice(p.price)}
           </option>
         ))}
       </select>
@@ -442,7 +442,7 @@ function VoucherIssuedView({
         </button>
         <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-white/5">
           <span>{voucher.package.label}</span>
-          <span>{formatPrice(voucher.package.price_tzs)}</span>
+          <span>{formatPrice(voucher.package.price)}</span>
         </div>
       </div>
 

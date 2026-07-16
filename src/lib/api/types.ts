@@ -6,7 +6,7 @@ export type PackageId = string;
 export interface Package {
   id: PackageId;
   label: string;        // e.g. "Masaa 24"
-  price_tzs: number;    // e.g. 1000
+  price: number;    // e.g. 1000
   duration_seconds: number;
 }
 
