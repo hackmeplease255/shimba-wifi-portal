@@ -181,10 +181,11 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="voucher-code" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Voucher Code
         </label>
         <input
+          id="voucher-code"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="Ingiza Voucher Code"
@@ -319,10 +320,11 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="package-select" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Kifurushi
         </label>
         <PackageSelect
+          id="package-select"
           query={packagesQuery}
           selectedId={selectedPackageId}
           onChange={handlePackageChange}
@@ -330,10 +332,11 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <label htmlFor="phone-number" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Namba ya Simu
         </label>
         <input
+          id="phone-number"
           value={phone}
           onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
           inputMode="numeric"
@@ -362,10 +365,12 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
 }
 
 function PackageSelect({
+  id,
   query,
   selectedId,
   onChange,
 }: {
+  id?: string;
   query: ReturnType<typeof useQuery<Package[], Error>>;
   selectedId: number | null;
   onChange: (id: number) => void;
@@ -387,6 +392,7 @@ function PackageSelect({
   return (
     <div className="relative">
       <select
+        id={id}
         value={selectedId ?? ""}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-14 appearance-none rounded-2xl bg-black/30 border border-white/10 px-5 pr-12 text-base font-medium outline-none transition-all duration-300 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)]"
