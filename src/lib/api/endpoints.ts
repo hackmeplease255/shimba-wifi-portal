@@ -10,7 +10,7 @@ import type {
   PaymentRequest,
   PaymentStatusResponse,
   RouterStatus,
-  VoucherAuthResponse,
+  VoucherActivateResponse,
 } from "./types";
 
 export const api = {
@@ -35,7 +35,7 @@ export const api = {
     }
   },
 
-  // Voucher auth (Tumia Vocha)
+  // Voucher activation
   activateVoucher: (code: string, macAddress: string, ipAddress?: string, signal?: AbortSignal) =>
     apiRequest<VoucherActivateResponse>("/api/vouchers/activate", {
       method: "POST",
@@ -47,25 +47,39 @@ export const api = {
       signal,
     }),
 
-  // Payments (Nunua Vocha to Mongike)
-  createPayment: (payload: PaymentRequest, signal?: AbortSignal) =>
-    apiRequest<PaymentCreatedResponse>("/api/payments/mongike", {
+  // Payments (Mongike mobile money)
+  createPayment: async (payload: PaymentRequest, signal?: AbortSignal) => {
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+    if (!baseUrl) throw new Error("Backend API haijaunganishwa");
+    const resp = await fetch(baseUrl + "/api/payments/mongike", {
       method: "POST",
-      body: payload,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ phone: payload.phone, package_id: payload.package_id }),
       signal,
-    }),
+    });
+    const json = await resp.json();
+    if (!resp.ok) {
+      throw new Error(json?.error || String(resp.status));
+    }
+    if (json && typeof json === "object" && json.success === true && json.data) {
+      return json.data as PaymentCreatedResponse;
+    }
+    return json as PaymentCreatedResponse;
+  },
 
-  getPaymentStatus: (paymentId: string, signal?: AbortSignal) =>
-    apiRequest<PaymentStatusResponse>(`/api/payments/${encodeURIComponent(paymentId)}`, {
-      signal,
-    }),
+  getPaymentStatus: (reference: string, signal?: AbortSignal) =>
+    apiRequest<PaymentStatusResponse>(
+      `/api/payments/status/${encodeURIComponent(reference)}`,
+      { signal },
+    ),
 
-  // Session / profile (used by admin + customer portal later)
-  getSession: (signal?: AbortSignal) =>
-    apiRequest<HotspotSession | null>("/api/session", { signal }),
+  // Session info (admin use, kept for future)
+  getSessions: (signal?: AbortSignal) =>
+    apiRequest<HotspotSession[]>("/api/v1/sessions", { signal }),
 
+  // Router monitoring
   getRouterStatus: (signal?: AbortSignal) =>
-    apiRequest<RouterStatus>("/api/router/status", { signal }),
+    apiRequest<RouterStatus[]>("/api/v1/monitoring/routers", { signal }),
 };
 
 export { ApiError } from "./client";
