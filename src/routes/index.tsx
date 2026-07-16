@@ -334,7 +334,7 @@ function PackageSelect({
       >
         {packages.map((p) => (
           <option key={p.id} value={p.id} className="bg-[var(--navy)]">
-            {p.label} — {formatPrice(p.price)}
+            {p.name} — {formatPrice(p.price)}
           </option>
         ))}
       </select>
@@ -441,7 +441,7 @@ function VoucherIssuedView({
           {copied ? "Imenakiliwa" : "Nakili"}
         </button>
         <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-white/5">
-          <span>{voucher.package.label}</span>
+          <span>{voucher.package.name}</span>
           <span>{formatPrice(voucher.package.price)}</span>
         </div>
       </div>

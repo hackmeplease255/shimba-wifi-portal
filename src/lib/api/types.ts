@@ -5,9 +5,10 @@ export type PackageId = string;
 
 export interface Package {
   id: PackageId;
+  name: string;
   label: string;        // e.g. "Masaa 24"
   price: number;    // e.g. 1000
-  duration_seconds: number;
+  duration_days: number;
 }
 
 export interface Voucher {
