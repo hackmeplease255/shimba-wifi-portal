@@ -50,6 +50,7 @@ function formatPrice(tzs: number): string {
 
 function Index() {
   const [tab, setTab] = useState<Tab>("use");
+  const [prefillCode, setPrefillCode] = useState("");
 
   return (
     <main className="min-h-screen w-full flex flex-col items-center px-4 py-8 sm:py-14">
@@ -79,13 +80,17 @@ function Index() {
 
         <div className="glass-card rounded-3xl p-2 sm:p-3">
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/20 border border-white/5">
-            <TabButton active={tab === "use"} onClick={() => setTab("use")} icon={<Ticket className="h-4 w-4" />} label="Tumia Vocha" />
+            <TabButton active={tab === "use"} onClick={() => { setTab("use"); setPrefillCode(""); }} icon={<Ticket className="h-4 w-4" />} label="Tumia Vocha" />
             <TabButton active={tab === "buy"} onClick={() => setTab("buy")} icon={<ShoppingCart className="h-4 w-4" />} label="Nunua Vocha" />
           </div>
 
           <div className="p-4 sm:p-6">
-            <div key={tab} className="animate-in fade-in-50 slide-in-from-bottom-2 duration-500">
-              {tab === "use" ? <UseVoucherForm onBuyVoucher={() => setTab("buy")} /> : <BuyVoucherForm onVoucherIssued={() => setTab("use")} />}
+            <div key={tab + prefillCode} className="animate-in fade-in-50 slide-in-from-bottom-2 duration-500">
+              {tab === "use" ? (
+                <UseVoucherForm onBuyVoucher={() => setTab("buy")} prefillCode={prefillCode} />
+              ) : (
+                <BuyVoucherForm onVoucherIssued={(code: string) => { setPrefillCode(code); setTab("use"); }} />
+              )}
             </div>
           </div>
         </div>
@@ -139,8 +144,8 @@ function getVoucherErrorInfo(error: unknown): { message: string } | null {
   return null;
 }
 
-function UseVoucherForm({ onBuyVoucher }: { onBuyVoucher: () => void }) {
-  const [code, setCode] = useState("");
+function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () => void; prefillCode?: string }) {
+  const [code, setCode] = useState(prefillCode);
   const macAddress = getMacFromUrl();
   const ipAddress = getIpFromUrl();
 
@@ -220,31 +225,18 @@ function UseVoucherForm({ onBuyVoucher }: { onBuyVoucher: () => void }) {
 
 // ---------- Buy Voucher ----------
 
-function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
-  // Load cached packages instantly, then refresh in background
-  const cachedPkgs = (() => {
-    try { const r = localStorage.getItem("shimba_pkgs"); return r ? JSON.parse(r) : undefined; } catch { return undefined; }
-  })();
-
+function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) => void }) {
   const packagesQuery = useQuery({
     queryKey: ["packages"],
     queryFn: ({ signal }) => api.listPackages(signal),
     staleTime: 60_000,
     retry: 1,
-    placeholderData: cachedPkgs,
   });
 
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [phone, setPhone] = useState("");
   const [reference, setReference] = useState<string | null>(null);
-
-  // Save packages to localStorage when loaded fresh
-  useEffect(() => {
-    if (packagesQuery.data) {
-      try { localStorage.setItem("shimba_pkgs", JSON.stringify(packagesQuery.data)); } catch {}
-    }
-  }, [packagesQuery.data]);
 
   useEffect(() => {
     if (packagesQuery.data && packagesQuery.data.length > 0 && selectedPackageId === null) {
@@ -298,7 +290,7 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: () => void }) {
         code={paymentData.voucher_code}
         packageName={selectedPackage?.name ?? null}
         packagePrice={selectedPackage?.price ?? null}
-        onUseNow={onVoucherIssued}
+        onUseNow={() => onVoucherIssued(paymentData.voucher_code!)}
         onBuyAnother={handleReset}
       />
     );
@@ -378,9 +370,12 @@ function PackageSelect({
   selectedId: number | null;
   onChange: (id: number) => void;
 }) {
-  // Loading: return nothing. Packages show instantly from cache or after fetch.
   if (query.isLoading) {
-    return null;
+    return (
+      <div className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 flex items-center gap-3 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Inapakia vifurushi...
+      </div>
+    );
   }
   if (query.isError) {
     return <ErrorBanner message={errorMessage(query.error)} onRetry={() => query.refetch()} />;
@@ -521,8 +516,8 @@ function VoucherIssuedView({
         className="group relative w-full h-14 rounded-2xl gradient-brand font-semibold text-white shadow-[0_15px_40px_-15px_var(--brand-purple)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_var(--brand-pink)] hover:-translate-y-0.5"
       >
         <span className="flex items-center justify-center gap-2">
-          <ArrowRight className="h-5 w-5" />
-          Tumia Sasa
+          <Ticket className="h-5 w-5" />
+          Tumia Vocha
         </span>
       </button>
       <button
