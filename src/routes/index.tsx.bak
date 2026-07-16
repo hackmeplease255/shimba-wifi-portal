@@ -317,11 +317,7 @@ function PackageSelect({
   if (query.isError) {
     return <ErrorBanner message={errorMessage(query.error)} onRetry={() => query.refetch()} />;
   }
-  if (!Array.isArray(query.data)) {
-    console.warn("PackageSelect: query.data is not an array", query.data);
-    return <ErrorBanner message="Hakuna vifurushi vinavyopatikana kwa sasa." />;
-  }
-  const packages = query.data;
+  const packages = query.data ?? [];
   if (packages.length === 0) {
     return <ErrorBanner message="Hakuna vifurushi vinavyopatikana kwa sasa." />;
   }
