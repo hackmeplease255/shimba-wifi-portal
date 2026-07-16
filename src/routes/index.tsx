@@ -318,7 +318,7 @@ function PackageSelect({
     return <ErrorBanner message={errorMessage(query.error)} onRetry={() => query.refetch()} />;
   }
   if (!Array.isArray(query.data)) {
-    console.warn("PackageSelect: query.data is not an array", query.data);
+    console.warn("PackageSelect: query.data is not an array", typeof query.data, query.data);
     return <ErrorBanner message="Hakuna vifurushi vinavyopatikana kwa sasa." />;
   }
   const packages = query.data;
@@ -562,3 +562,4 @@ function TabButton({
     </button>
   );
 }
+

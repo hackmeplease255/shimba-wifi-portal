@@ -15,8 +15,25 @@ import type {
 
 export const api = {
   // Packages
-  listPackages: (signal?: AbortSignal) =>
-    apiRequest<Package[]>("/api/packages", { signal }),
+  listPackages: async (signal?: AbortSignal) => {
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+    if (!baseUrl) throw new Error("Backend API haijaunganishwa");
+    try {
+      const resp = await fetch(baseUrl + "/api/packages", {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal,
+      });
+      if (!resp.ok) throw new Error(String(resp.status));
+      const json = await resp.json();
+      if (json && typeof json === "object" && json.success === true && Array.isArray(json.data)) {
+        return json.data;
+      }
+      return Array.isArray(json) ? json : [];
+    } catch (err) {
+      throw new Error("Network error: " + (err instanceof Error ? err.message : String(err)));
+    }
+  },
 
   // Voucher auth (Tumia Vocha)
   authenticateVoucher: (code: string, signal?: AbortSignal) =>
@@ -26,7 +43,7 @@ export const api = {
       signal,
     }),
 
-  // Payments (Nunua Vocha → Mongike)
+  // Payments (Nunua Vocha to Mongike)
   createPayment: (payload: PaymentRequest, signal?: AbortSignal) =>
     apiRequest<PaymentCreatedResponse>("/api/payments/create", {
       method: "POST",
