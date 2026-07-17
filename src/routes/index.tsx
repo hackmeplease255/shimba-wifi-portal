@@ -132,16 +132,46 @@ function getLinkOrigFromUrl(): string {
   return new URLSearchParams(window.location.search).get("link-orig") || "";
 }
 
+function getLinkLoginFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("link-login") || "http://192.168.88.1/login";
+}
+
 /**
- * After successful activation, wait for binding to sync (3s)
- * then redirect the user to their original destination or Google.
- * The MikroTik will have applied the IP binding by then.
+ * After successful activation, wait 5s for the MikroTik scheduler to
+ * pull the binding and create the hotspot user, then auto-submit the
+ * voucher code to the MikroTik login page as username+password.
+ * This gives the user instant internet without needing to type the code manually.
  */
-function redirectToInternet() {
-  const linkOrig = getLinkOrigFromUrl();
+function autoLoginToMikrotik(voucherCode: string) {
+  const loginUrl = getLinkLoginFromUrl();
   setTimeout(() => {
-    window.location.replace(linkOrig || "http://google.com");
-  }, 3000);
+    try {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = loginUrl;
+      form.style.display = "none";
+
+      const username = document.createElement("input");
+      username.type = "hidden";
+      username.name = "username";
+      username.value = voucherCode;
+
+      const password = document.createElement("input");
+      password.type = "hidden";
+      password.name = "password";
+      password.value = voucherCode;
+
+      form.appendChild(username);
+      form.appendChild(password);
+      document.body.appendChild(form);
+      form.submit();
+      // Browser leaves the SPA — user gets redirected to MikroTik login result
+    } catch {
+      // Fallback: redirect to login page
+      window.location.href = loginUrl + "?username=" + encodeURIComponent(voucherCode);
+    }
+  }, 5000);
 }
 
 function getVoucherErrorInfo(error: unknown): { message: string } | null {
@@ -169,10 +199,10 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
   const mutation = useMutation({
     mutationFn: (voucherCode: string) =>
       api.activateVoucher(voucherCode.trim(), macAddress, ipAddress),
-    onSuccess: () => {
-      // Activation succeeded — binding will sync within 3s via scheduler
-      // Redirect to internet after brief delay
-      redirectToInternet();
+    onSuccess: (data) => {
+      // Activation succeeded — binding will sync via scheduler within 3s
+      // Auto-login to MikroTik hotspot with voucher code after 5s
+      autoLoginToMikrotik(code.trim());
     },
   });
 
