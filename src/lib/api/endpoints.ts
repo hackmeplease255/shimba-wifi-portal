@@ -43,8 +43,9 @@ export const api = {
 
   // ── Payments (Mongike mobile money) ──
   // POST /api/v1/payments/mongike — initiate a mobile money payment
+  // Backend returns: { success: true, data: { message, orderReference, mongike } }
   createPayment: async (payload: PaymentRequest, signal?: AbortSignal) => {
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+    const baseUrl = ((import.meta as any).env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
     if (!baseUrl) throw new Error("Backend API haijaunganishwa");
     const resp = await fetch(baseUrl + "/api/v1/payments/mongike", {
       method: "POST",
@@ -54,13 +55,15 @@ export const api = {
     });
     const json = await resp.json();
     if (!resp.ok) throw new Error(json?.error || json?.message || "Payment failed");
+    // Unwrap { success: true, data: { ... } } envelope
     if (json?.success && json?.data) return json.data as PaymentCreatedResponse;
     throw new Error("Invalid server response");
   },
 
   // GET /api/v1/payments/status/:reference — poll for payment confirmation
+  // Backend returns: { success: true, data: { paid, status, voucher_code? } }
   getPaymentStatus: async (reference: string, signal?: AbortSignal) => {
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+    const baseUrl = ((import.meta as any).env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
     if (!baseUrl) throw new Error("Backend API haijaunganishwa");
     const resp = await fetch(baseUrl + `/api/v1/payments/status/${encodeURIComponent(reference)}`, {
       method: "GET",
@@ -69,11 +72,12 @@ export const api = {
     });
     const json = await resp.json();
     if (!resp.ok) throw new Error(json?.error || json?.message || "Status check failed");
+    // Unwrap { success: true, data: { ... } } envelope
     if (json?.success && json?.data) return json.data as PaymentStatusResponse;
     throw new Error("Invalid server response");
   },
 
-  // ── Session info (admin use, kept for future) ──
+  // ── Session info ──
   // GET /api/v1/sessions — active sessions
   getSessions: (signal?: AbortSignal) =>
     apiRequest<HotspotSession[]>("/api/v1/sessions", { signal }),

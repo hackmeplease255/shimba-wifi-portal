@@ -16,7 +16,7 @@ import {
   Copy,
 } from "lucide-react";
 
-import { api, ApiError, type Package, type PaymentStatus } from "../lib/api/endpoints";
+import { api, ApiError, type Package } from "../lib/api/endpoints";
 
 export const Route = createFileRoute("/")({
   head: () => ({
