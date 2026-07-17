@@ -127,6 +127,45 @@ function getIpFromUrl(): string {
   return new URLSearchParams(window.location.search).get("ip") || "";
 }
 
+function getLinkLoginFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("link-login") || "";
+}
+
+/**
+ * Auto-authenticate with MikroTik hotspot by submitting voucher code
+ * to the hotspot login URL. This gives instant internet without
+ * waiting for the binding scheduler poll.
+ */
+function autoLoginMikrotik(voucherCode: string) {
+  const linkLogin = getLinkLoginFromUrl();
+  if (!linkLogin) return;
+
+  try {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = linkLogin;
+    form.style.display = "none";
+
+    const addField = (name: string, value: string) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    };
+
+    addField("username", voucherCode);
+    addField("password", voucherCode);
+
+    document.body.appendChild(form);
+    form.submit();
+  } catch (e) {
+    // Silent fail — binding will sync via scheduler as fallback
+    console.warn("Auto-login failed, relying on binding sync", e);
+  }
+}
+
 function getVoucherErrorInfo(error: unknown): { message: string } | null {
   if (!(error instanceof ApiError)) return null;
   if (error.code === "NOT_FOUND") {
@@ -153,7 +192,9 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
     mutationFn: (voucherCode: string) =>
       api.activateVoucher(voucherCode.trim(), macAddress, ipAddress),
     onSuccess: () => {
-      // Activation succeeded — session and IP binding created
+      // Activation succeeded — auto-login to MikroTik hotspot after brief delay
+      // so the user sees the success message before redirect
+      setTimeout(() => autoLoginMikrotik(code.trim()), 1500);
     },
   });
 
