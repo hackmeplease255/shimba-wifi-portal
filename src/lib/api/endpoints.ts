@@ -37,6 +37,7 @@ export const api = {
         code: code.toUpperCase().trim(),
         mac_address: macAddress.toUpperCase(),
         ip_address: ipAddress || "",
+        router_name: "SHIMBA-HOTSPOT",
       },
       signal,
     }),
