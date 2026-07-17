@@ -127,43 +127,21 @@ function getIpFromUrl(): string {
   return new URLSearchParams(window.location.search).get("ip") || "";
 }
 
-function getLinkLoginFromUrl(): string {
+function getLinkOrigFromUrl(): string {
   if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get("link-login") || "";
+  return new URLSearchParams(window.location.search).get("link-orig") || "";
 }
 
 /**
- * Auto-authenticate with MikroTik hotspot by submitting voucher code
- * to the hotspot login URL. This gives instant internet without
- * waiting for the binding scheduler poll.
+ * After successful activation, wait for binding to sync (3s)
+ * then redirect the user to their original destination or Google.
+ * The MikroTik will have applied the IP binding by then.
  */
-function autoLoginMikrotik(voucherCode: string) {
-  const linkLogin = getLinkLoginFromUrl();
-  if (!linkLogin) return;
-
-  try {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = linkLogin;
-    form.style.display = "none";
-
-    const addField = (name: string, value: string) => {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = name;
-      input.value = value;
-      form.appendChild(input);
-    };
-
-    addField("username", voucherCode);
-    addField("password", voucherCode);
-
-    document.body.appendChild(form);
-    form.submit();
-  } catch (e) {
-    // Silent fail — binding will sync via scheduler as fallback
-    console.warn("Auto-login failed, relying on binding sync", e);
-  }
+function redirectToInternet() {
+  const linkOrig = getLinkOrigFromUrl();
+  setTimeout(() => {
+    window.location.replace(linkOrig || "http://google.com");
+  }, 3000);
 }
 
 function getVoucherErrorInfo(error: unknown): { message: string } | null {
@@ -192,9 +170,9 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
     mutationFn: (voucherCode: string) =>
       api.activateVoucher(voucherCode.trim(), macAddress, ipAddress),
     onSuccess: () => {
-      // Activation succeeded — auto-login to MikroTik hotspot after brief delay
-      // so the user sees the success message before redirect
-      setTimeout(() => autoLoginMikrotik(code.trim()), 1500);
+      // Activation succeeded — binding will sync within 3s via scheduler
+      // Redirect to internet after brief delay
+      redirectToInternet();
     },
   });
 
