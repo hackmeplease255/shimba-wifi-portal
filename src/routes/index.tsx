@@ -138,10 +138,10 @@ function getLinkLoginFromUrl(): string {
 }
 
 /**
- * After successful activation, wait 5s for the MikroTik scheduler to
- * pull the binding and create the hotspot user, then auto-submit the
- * voucher code to the MikroTik login page as username+password.
- * This gives the user instant internet without needing to type the code manually.
+ * After successful activation, wait 2s then auto-submit the
+ * voucher code to the MikroTik hotspot login as username+password.
+ * Since the backend creates the hotspot user via WireGuard instantly,
+ * no scheduler delay is needed — 2s is just for UX (show success msg).
  */
 function autoLoginToMikrotik(voucherCode: string) {
   const loginUrl = getLinkLoginFromUrl();
