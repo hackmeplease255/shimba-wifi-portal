@@ -195,14 +195,19 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
   const [code, setCode] = useState(prefillCode);
   const macAddress = getMacFromUrl();
   const ipAddress = getIpFromUrl();
+  const [activating, setActivating] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (voucherCode: string) =>
       api.activateVoucher(voucherCode.trim(), macAddress, ipAddress),
     onSuccess: (data) => {
-      // Activation succeeded — binding will sync via scheduler within 3s
-      // Auto-login to MikroTik hotspot with voucher code after 5s
+      setActivating(true);
+      // Auto-login to MikroTik hotspot with voucher code after 4s
       autoLoginToMikrotik(code.trim());
+      // Auto-redirect to neverssl.com after 6s so Windows detects internet
+      setTimeout(() => {
+        window.location.href = "http://neverssl.com";
+      }, 6000);
     },
   });
 
@@ -210,12 +215,72 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
     e.preventDefault();
     if (!code.trim()) return;
     if (!macAddress) {
-      // If no MAC in URL, the user may not be on the MikroTik network
       alert("Tafadhali unganisha kwenye mtandao wa SHIMBA WIFI kwanza.");
       return;
     }
     mutation.mutate(code);
   };
+
+  // After success, show beautiful connected page instead of form
+  if (activating) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const expiryDate = mutation.data?.expires_at
+      ? new Date(mutation.data.expires_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '—';
+    const expiryTime = mutation.data?.expires_at
+      ? new Date(mutation.data.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    return (
+      <div className="space-y-5 animate-in fade-in-50 slide-in-from-bottom-2 duration-500">
+        <div className="flex flex-col items-center text-center">
+          <div className="h-20 w-20 rounded-full bg-emerald-500/15 border-2 border-emerald-400/40 flex items-center justify-center mb-4">
+            <Wifi className="h-10 w-10 text-emerald-400" />
+          </div>
+          <h2 className="text-2xl font-black text-gradient-brand">Umeunganishwa!</h2>
+          <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+            Karibu SHIMBA WIFI. Sasa unaweza kutumia internet kwa uhuru.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Connection time</span>
+            <span className="text-white font-semibold">{timeStr}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Voucher</span>
+            <span className="text-white font-semibold font-mono tracking-wider">{code}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Expires</span>
+            <span className="text-white font-semibold">{expiryDate} {expiryTime}</span>
+          </div>
+          <div className="pt-3 border-t border-white/5 text-center">
+            <a href="tel:0772940535" className="inline-flex items-center gap-2 text-sm text-[var(--brand-pink)] hover:underline">
+              <Phone className="h-4 w-4" />
+              Msaada: 0772940535
+            </a>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-center">
+          <p className="text-xs text-emerald-300/80">
+            Unaweza kufungua browser na kuanza kutumia internet mara moja.
+            Ukiona "No Internet", subiri sekunde chache — internet ipo tayari.
+          </p>
+        </div>
+
+        <div className="flex justify-center">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--brand-pink)]" />
+            Inakupeleka kwenye internet...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Determine if the error is a voucher-specific error
   const voucherError = mutation.isError ? getVoucherErrorInfo(mutation.error) : null;
