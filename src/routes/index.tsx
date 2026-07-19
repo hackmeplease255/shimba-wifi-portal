@@ -202,19 +202,12 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
       api.activateVoucher(voucherCode.trim(), macAddress, ipAddress),
     onSuccess: (data) => {
       setActivating(true);
-      // Step 1: First redirect to neverssl.com after 5s so Windows detects internet
-      // Step 2: Also submit to MikroTik login as fallback at 5s
+      // After 5s, redirect to neverssl.com so Windows detects internet.
+      // The MikroTik already has bypass binding from backend REST API,
+      // so the user is already authenticated — no need for form login POST.
       setTimeout(() => {
-        // Redirect to neverssl.com — Windows will detect internet and
-        // remove the captive portal notification.
-        // The MikroTik already has bypass binding from the backend REST API,
-        // so the user is already authenticated.
         window.location.href = "http://neverssl.com";
       }, 5000);
-      // Also keep the MikroTik login form submission as a secondary fallback
-      setTimeout(() => {
-        autoLoginToMikrotik(code.trim());
-      }, 1000);
     },
   });
 
