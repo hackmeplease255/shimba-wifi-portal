@@ -57,7 +57,7 @@ function Index() {
       <div className="w-full max-w-[500px]">
         <header className="flex items-center gap-3 mb-6 px-1">
           <div className="relative h-12 w-12 rounded-2xl gradient-brand flex items-center justify-center shadow-[0_10px_30px_-10px_var(--brand-pink)]">
-            <span className="text-white font-black text-2xl leading-none">S</span>
+            <span className="text-white font-black text-2xl leading-none">B</span>
             <span className="absolute -inset-px rounded-2xl ring-1 ring-white/20 pointer-events-none" />
           </div>
           <div className="flex-1 min-w-0">
