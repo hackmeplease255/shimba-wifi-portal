@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRef } from "react";
 import {
   ArrowRight,
   Loader2,
@@ -374,6 +375,10 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
     onSuccess: (data) => setReference(data.orderReference),
   });
 
+  // ⏱️ Max 60 polls (3 minutes) before timing out to avoid infinite polling
+  const MAX_POLLS = 60;
+  const pollCountRef = useRef(0);
+
   const statusQuery = useQuery({
     queryKey: ["payment", reference],
     queryFn: ({ signal }) => api.getPaymentStatus(reference!, signal),
@@ -381,6 +386,10 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
     refetchInterval: (q) => {
       const d = q.state.data;
       if (!d) return 3000;
+      pollCountRef.current++;
+      if (pollCountRef.current >= MAX_POLLS) {
+        return false; // Stop polling after 3 minutes
+      }
       return d.paid || d.status === "FAILED" ? false : 3000;
     },
     retry: 2,
