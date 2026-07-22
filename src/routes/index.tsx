@@ -21,14 +21,14 @@ import { api, ApiError, type Package } from "../lib/api/endpoints";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SHIMBA WIFI — Unganisha kwa haraka" },
+      { title: "BENNY MATELEPHONE WIFI — Unganisha kwa haraka" },
       {
         name: "description",
         content:
-          "SHIMBA WIFI hotspot portal. Tumia vocha yako au nunua kifurushi cha internet kwa haraka na salama.",
+          "BENNY MATELEPHONE WIFI hotspot portal. Tumia vocha yako au nunua kifurushi cha internet kwa haraka na salama.",
       },
-      { property: "og:title", content: "SHIMBA WIFI" },
-      { property: "og:description", content: "Portal ya SHIMBA WIFI — tumia au nunua vocha ya internet." },
+      { property: "og:title", content: "BENNY MATELEPHONE WIFI" },
+      { property: "og:description", content: "Portal ya BENNY MATELEPHONE WIFI — tumia au nunua vocha ya internet." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -62,7 +62,7 @@ function Index() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight leading-tight">
-              <span className="text-gradient-brand">SHIMBA</span>{" "}
+              <span className="text-gradient-brand">BENNY MATELEPHONE</span>{" "}
               <span className="text-foreground">WIFI</span>
             </h1>
             <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5">
@@ -107,7 +107,7 @@ function Index() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Powered by <span className="font-semibold text-gradient-brand">SHIMBA WIFI</span>
+            Powered by <span className="font-semibold text-gradient-brand">BENNY MATELEPHONE WIFI</span>
           </p>
         </footer>
       </div>
@@ -215,7 +215,7 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
     e.preventDefault();
     if (!code.trim()) return;
     if (!macAddress) {
-      alert("Tafadhali unganisha kwenye mtandao wa SHIMBA WIFI kwanza.");
+      alert("Tafadhali unganisha kwenye mtandao wa BENNY MATELEPHONE WIFI kwanza.");
       return;
     }
     mutation.mutate(code);
@@ -240,7 +240,7 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
           </div>
           <h2 className="text-2xl font-black text-gradient-brand">Umeunganishwa!</h2>
           <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-            Karibu SHIMBA WIFI. Sasa unaweza kutumia internet kwa uhuru.
+            Karibu BENNY MATELEPHONE WIFI. Sasa unaweza kutumia internet kwa uhuru.
           </p>
         </div>
 
