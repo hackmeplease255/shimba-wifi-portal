@@ -12,6 +12,10 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+// ── Brand Configuration ──
+const BRAND_NAME = (import.meta as any).env.VITE_PORTAL_BRAND_NAME || "SHIMBA";
+const BRAND_TAGLINE = "Hotspot Portal";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -77,14 +81,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BENNY MATELEPHONE WIFI" },
-      { name: "description", content: "BENNY MATELEPHONE WIFI Hotspot Portal — tumia au nunua vocha ya internet" },
-      { name: "author", content: "Benny Matelephone" },
-      { property: "og:title", content: "BENNY MATELEPHONE WIFI" },
-      { property: "og:description", content: "BENNY MATELEPHONE WIFI Hotspot Portal — tumia au nunua vocha ya internet" },
+      { title: `${BRAND_NAME} WIFI — ${BRAND_TAGLINE}` },
+      { name: "description", content: `${BRAND_NAME} WIFI Hotspot Portal — tumia au nunua vocha ya internet` },
+      { name: "author", content: BRAND_NAME },
+      { property: "og:title", content: `${BRAND_NAME} WIFI` },
+      { property: "og:description", content: `${BRAND_NAME} WIFI Hotspot Portal — tumia au nunua vocha ya internet` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@benny_matelephone" },
     ],
     links: [
       {

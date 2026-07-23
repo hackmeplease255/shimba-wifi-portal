@@ -21,7 +21,7 @@ import { api, ApiError, type Package } from "../lib/api/endpoints";
 
 // ── Brand Configuration ──
 // Override via VITE_PORTAL_BRAND_NAME env variable for multi-brand support
-const BRAND_NAME = (import.meta as any).env.VITE_PORTAL_BRAND_NAME || "BENNY MATELEPHONE";
+const BRAND_NAME = (import.meta as any).env.VITE_PORTAL_BRAND_NAME || "SHIMBA";
 const BRAND_TAGLINE = (import.meta as any).env.VITE_PORTAL_TAGLINE || "Unganisha kwa haraka";
 const BRAND_SUPPORT_PHONE = (import.meta as any).env.VITE_PORTAL_SUPPORT_PHONE || "0772940535";
 const BRAND_LOGO_LETTER = BRAND_NAME.charAt(0);
