@@ -134,6 +134,11 @@ function getIpFromUrl(): string {
   return new URLSearchParams(window.location.search).get("ip") || "";
 }
 
+function getRouterKeyFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("router") || "";
+}
+
 function getLinkOrigFromUrl(): string {
   if (typeof window === "undefined") return "";
   return new URLSearchParams(window.location.search).get("link-orig") || "";
@@ -202,11 +207,12 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
   const [code, setCode] = useState(prefillCode);
   const macAddress = getMacFromUrl();
   const ipAddress = getIpFromUrl();
+  const routerKey = getRouterKeyFromUrl();
   const [activating, setActivating] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (voucherCode: string) =>
-      api.activateVoucher(voucherCode.trim(), macAddress, ipAddress),
+      api.activateVoucher(voucherCode.trim(), macAddress, ipAddress, routerKey),
     onSuccess: (data) => {
       setActivating(true);
       // After 5s, redirect to neverssl.com so Windows detects internet.
@@ -223,6 +229,10 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
     if (!code.trim()) return;
     if (!macAddress) {
       alert(`Tafadhali unganisha kwenye mtandao wa ${BRAND_NAME} WIFI kwanza.`);
+      return;
+    }
+    if (!routerKey) {
+      alert("Tafadhali fungua portal kupitia WiFi ya SHIMBA WIFI.");
       return;
     }
     mutation.mutate(code);

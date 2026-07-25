@@ -32,3 +32,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+# Windows reserved device names
+nul

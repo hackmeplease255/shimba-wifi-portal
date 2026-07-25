@@ -29,6 +29,7 @@ export const api = {
     code: string,
     macAddress: string,
     ipAddress?: string,
+    routerKey?: string,
     signal?: AbortSignal,
   ) =>
     apiRequest<VoucherActivateResponse>("/api/v1/vouchers/activate", {
@@ -37,6 +38,7 @@ export const api = {
         code: code.toUpperCase().trim(),
         mac_address: macAddress.toUpperCase(),
         ip_address: ipAddress || "",
+        router_key: routerKey || "",
       },
       signal,
     }),
