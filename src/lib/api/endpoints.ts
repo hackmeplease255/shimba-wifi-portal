@@ -18,9 +18,10 @@ import type {
 
 export const api = {
   // ── Packages ──
-  // GET /api/v1/packages — list active packages
-  listPackages: (signal?: AbortSignal) =>
-    apiRequest<Package[]>("/api/v1/packages", { signal }),
+  // GET /api/v1/packages?router_key= — list active packages for THIS router
+  // (multi-router isolation: each portal only sees its own router's packages).
+  listPackages: (routerKey?: string, signal?: AbortSignal) =>
+    apiRequest<Package[]>("/api/v1/packages" + (routerKey ? `?router_key=${encodeURIComponent(routerKey)}` : ""), { signal }),
 
   // ── Voucher activation ──
   // POST /api/v1/vouchers/activate — activate a voucher
@@ -49,7 +50,7 @@ export const api = {
   createPayment: (payload: PaymentRequest, signal?: AbortSignal) =>
     apiRequest<PaymentCreatedResponse>("/api/v1/payments/mongike", {
       method: "POST",
-      body: { phone: payload.phone, package_id: payload.package_id },
+      body: { phone: payload.phone, package_id: payload.package_id, router_key: payload.router_key || "" },
       signal,
     }),
 

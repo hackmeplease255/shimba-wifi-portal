@@ -33,6 +33,9 @@ export interface HotspotSession {
 export interface PaymentRequest {
   package_id: PackageId;
   phone: string;
+  // Router identity (portal_key or router name) — binds the payment + voucher
+  // to exactly one router (multi-router isolation).
+  router_key?: string;
 }
 
 // Response from POST /api/v1/payments/mongike

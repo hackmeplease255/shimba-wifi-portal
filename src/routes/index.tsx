@@ -360,9 +360,11 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
 // ---------- Buy Voucher ----------
 
 function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) => void }) {
+  // Router-scoped package list: only this router's packages are shown.
+  const routerKey = getRouterKeyFromUrl();
   const packagesQuery = useQuery({
-    queryKey: ["packages"],
-    queryFn: ({ signal }) => api.listPackages(signal),
+    queryKey: ["packages", routerKey],
+    queryFn: ({ signal }) => api.listPackages(routerKey, signal),
     staleTime: 60_000,
     retry: 1,
   });
@@ -389,7 +391,7 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
 
   const createPayment = useMutation({
     mutationFn: () =>
-      api.createPayment({ package_id: selectedPackageId!, phone }),
+      api.createPayment({ package_id: selectedPackageId!, phone, router_key: routerKey }),
     onSuccess: (data) => setReference(data.orderReference),
   });
 
