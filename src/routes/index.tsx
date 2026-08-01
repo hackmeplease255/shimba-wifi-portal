@@ -209,6 +209,7 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
   const ipAddress = getIpFromUrl();
   const routerKey = getRouterKeyFromUrl();
   const [activating, setActivating] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: (voucherCode: string) =>
@@ -227,14 +228,14 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
+    // mac is required (comes from the hotspot redirect) so the router can
+    // bind this device. router is OPTIONAL — without it the backend falls
+    // back to trying all known routers (single-router setups just work).
     if (!macAddress) {
-      alert(`Tafadhali unganisha kwenye mtandao wa ${BRAND_NAME} WIFI kwanza.`);
+      setNotice(`Tafadhali unganisha kwenye mtandao wa ${BRAND_NAME} WIFI kwanza, kisha fungua portal tena kupitia ujumbe wa kuingia (login redirect).`);
       return;
     }
-    if (!routerKey) {
-      alert("Tafadhali fungua portal kupitia WiFi ya SHIMBA WIFI.");
-      return;
-    }
+    setNotice(null);
     mutation.mutate(code);
   };
 
@@ -317,13 +318,15 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
         <input
           id="voucher-code"
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => { setCode(e.target.value); setNotice(null); }}
           placeholder="Ingiza Voucher Code"
           autoComplete="off"
           disabled={mutation.isPending}
           className="w-full h-14 rounded-2xl bg-black/30 border border-white/10 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:bg-black/40 focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)] disabled:opacity-60"
         />
       </div>
+
+      {notice && <ErrorBanner message={notice} />}
 
       {voucherError ? (
         <VoucherErrorBanner message={voucherError.message} onBuyVoucher={onBuyVoucher} />
