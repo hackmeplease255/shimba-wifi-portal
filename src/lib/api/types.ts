@@ -10,6 +10,10 @@ export interface Package {
   duration_days: number;
   description?: string;
   status?: string;
+  router_id?: number | null;
+  router_name?: string | null;
+  data_limit_mb?: number | null;
+  speed_limit_mbps?: number | null;
 }
 
 export interface Voucher {
