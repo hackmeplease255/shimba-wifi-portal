@@ -58,7 +58,6 @@ function formatPrice(tzs: number): string {
 function Index() {
   const [tab, setTab] = useState<Tab>("use");
   const [prefillCode, setPrefillCode] = useState("");
-  const [preselectPkg, setPreselectPkg] = useState<number | null>(null);
 
   return (
     <main className="min-h-screen w-full flex flex-col items-center px-4 py-8 sm:py-14">
@@ -86,8 +85,6 @@ function Index() {
           </div>
         </header>
 
-        <PackagesSection onBuyPackage={(id) => { setPreselectPkg(id); setTab("buy"); }} />
-
         <div className="glass-card rounded-3xl p-2 sm:p-3">
           <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/20 border border-white/5">
             <TabButton active={tab === "use"} onClick={() => { setTab("use"); setPrefillCode(""); }} icon={<Ticket className="h-4 w-4" />} label="Tumia Vocha" />
@@ -99,7 +96,7 @@ function Index() {
               {tab === "use" ? (
                 <UseVoucherForm onBuyVoucher={() => setTab("buy")} prefillCode={prefillCode} />
               ) : (
-                <BuyVoucherForm initialPackageId={preselectPkg} onVoucherIssued={(code: string) => { setPrefillCode(code); setTab("use"); }} />
+                <BuyVoucherForm onVoucherIssued={(code: string) => { setPrefillCode(code); setTab("use"); }} />
               )}
             </div>
           </div>
@@ -209,6 +206,11 @@ function getVoucherErrorInfo(error: unknown): { message: string } | null {
   if (error.code === "VOUCHER_DISABLED") {
     return {
       message: "Vocha hii imesimamishwa. Tafadhali wasiliana na msaada.",
+    };
+  }
+  if (error.code === "ROUTER_NOT_REGISTERED") {
+    return {
+      message: "Mtandao huu bado haijaungana. Tafadhali wasiliana na msaada.",
     };
   }
   return null;
@@ -371,83 +373,9 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
   );
 }
 
-// ---------- Packages (homepage) ----------
-
-function formatLimit(mb?: number | null): string {
-  if (!mb || mb <= 0) return "";
-  return mb >= 1024 ? `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB` : `${mb} MB`;
-}
-
-function PackagesSection({ onBuyPackage }: { onBuyPackage: (id: number) => void }) {
-  // Router-scoped package list: only this router's packages are shown.
-  const routerKey = getRouterKeyFromUrl();
-  const packagesQuery = useQuery({
-    // Same key as BuyVoucherForm so the homepage list and the buy dropdown
-    // share one fetch — no duplicate package requests on tab switch.
-    queryKey: ["packages", routerKey],
-    queryFn: ({ signal }) => api.listPackages(routerKey, signal),
-    staleTime: 60_000,
-    retry: 1,
-  });
-
-  if (packagesQuery.isLoading) {
-    return (
-      <div className="glass-card rounded-3xl p-5 mb-5 flex items-center gap-3 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Inapakia vifurushi...
-      </div>
-    );
-  }
-  if (packagesQuery.isError) {
-    return (
-      <div className="mb-5">
-        <ErrorBanner message={errorMessage(packagesQuery.error)} onRetry={() => packagesQuery.refetch()} />
-      </div>
-    );
-  }
-  const packages = packagesQuery.data ?? [];
-  if (packages.length === 0) return null;
-
-  return (
-    <div className="mb-5">
-      <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 px-1">
-        Vifurushi Vinavyopatikana
-      </h2>
-      <div className="space-y-3">
-        {packages.map((p) => (
-          <div key={p.id} className="glass-card rounded-3xl p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[15px] font-bold leading-tight">{p.name}</div>
-                {p.description && (
-                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</div>
-                )}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
-                  <span>{p.duration_days} day{p.duration_days !== 1 ? "s" : ""}</span>
-                  {p.data_limit_mb ? <span>📊 {formatLimit(p.data_limit_mb)}</span> : null}
-                  {p.speed_limit_mbps ? <span>⚡ {p.speed_limit_mbps} Mbps</span> : null}
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-lg font-black text-gradient-brand">{formatPrice(p.price)}</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onBuyPackage(p.id)}
-              className="mt-3 w-full h-11 rounded-xl gradient-brand text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-[0_10px_30px_-10px_var(--brand-pink)] active:scale-[0.98]"
-            >
-              <ShoppingCart className="h-4 w-4" /> Nunua Kifurushi
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ---------- Buy Voucher ----------
 
-function BuyVoucherForm({ onVoucherIssued, initialPackageId = null }: { onVoucherIssued: (code: string) => void; initialPackageId?: number | null }) {
+function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) => void }) {
   // Router-scoped package list: only this router's packages are shown.
   const routerKey = getRouterKeyFromUrl();
   const packagesQuery = useQuery({
@@ -464,13 +392,11 @@ function BuyVoucherForm({ onVoucherIssued, initialPackageId = null }: { onVouche
 
   useEffect(() => {
     if (packagesQuery.data && packagesQuery.data.length > 0 && selectedPackageId === null) {
-      const pick = initialPackageId
-        ? packagesQuery.data.find((p) => p.id === initialPackageId) ?? packagesQuery.data[0]
-        : packagesQuery.data[0];
-      setSelectedPackageId(pick.id);
-      setSelectedPackage(pick);
+      const first = packagesQuery.data[0];
+      setSelectedPackageId(first.id);
+      setSelectedPackage(first);
     }
-  }, [packagesQuery.data, selectedPackageId, initialPackageId]);
+  }, [packagesQuery.data, selectedPackageId]);
 
   // Track the selected package for display in voucher view
   const handlePackageChange = (id: number) => {
