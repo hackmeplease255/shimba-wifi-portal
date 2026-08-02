@@ -190,14 +190,17 @@ function getVoucherErrorInfo(error: unknown): { message: string } | null {
   if (!(error instanceof ApiError)) return null;
   if (error.code === "NOT_FOUND") {
     return {
-      message:
-        "Vocha uliyoitingiza haipo. Tafadhali bonyeza Nunua Vocha na ununue vocha.",
+      message: "Vocha uliyoingiza haipo. Tafadhali nunua vocha.",
     };
   }
   if (error.code === "VOUCHER_ALREADY_USED") {
     return {
-      message:
-        "Vocha hii tayari imetumika. Bonyeza Nunua Vocha na ununue vocha mpya.",
+      message: "Vocha imeshatumika.",
+    };
+  }
+  if (error.code === "VOUCHER_DISABLED") {
+    return {
+      message: "Vocha hii imesimamishwa. Tafadhali wasiliana na msaada.",
     };
   }
   return null;
@@ -216,12 +219,13 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
       api.activateVoucher(voucherCode.trim(), macAddress, ipAddress, routerKey),
     onSuccess: (data) => {
       setActivating(true);
-      // After 5s, redirect to neverssl.com so Windows detects internet.
-      // The MikroTik already has bypass binding from backend REST API,
-      // so the user is already authenticated — no need for form login POST.
+      // Redirect to neverssl.com so Windows detects internet. The MikroTik
+      // already has bypass binding from backend REST API, so the user is
+      // already authenticated — the short delay is only so the success
+      // screen is readable.
       setTimeout(() => {
         window.location.href = "http://neverssl.com";
-      }, 5000);
+      }, 1800);
     },
   });
 
@@ -232,7 +236,9 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
     // bind this device. router is OPTIONAL — without it the backend falls
     // back to trying all known routers (single-router setups just work).
     if (!macAddress) {
-      setNotice(`Tafadhali unganisha kwenye mtandao wa ${BRAND_NAME} WIFI kwanza, kisha fungua portal tena kupitia ujumbe wa kuingia (login redirect).`);
+      setNotice(
+        `Unaweza kununua vocha na kuziona kutoka popote. Lakini ili kuwasha internet, unganisha kwenye mtandao wa ${BRAND_NAME} WIFI kwanza (WiFi ya Shimba), kisha fungua portal tena kupitia ujumbe wa kuingia (login redirect) wa mtandao huo.`
+      );
       return;
     }
     setNotice(null);
@@ -395,8 +401,9 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
     onSuccess: (data) => setReference(data.orderReference),
   });
 
-  // ⏱️ Max 60 polls (3 minutes) before timing out to avoid infinite polling
-  const MAX_POLLS = 60;
+  // ⏱️ Max 120 polls (~3 minutes at 1.5s) before timing out to avoid
+  // infinite polling while still giving slow mobile-money confirmations time.
+  const MAX_POLLS = 120;
   const pollCountRef = useRef(0);
 
   const statusQuery = useQuery({
@@ -405,12 +412,12 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
     enabled: !!reference,
     refetchInterval: (q) => {
       const d = q.state.data;
-      if (!d) return 3000;
+      if (!d) return 1500;
       pollCountRef.current++;
       if (pollCountRef.current >= MAX_POLLS) {
-        return false; // Stop polling after 3 minutes
+        return false; // Stop polling after the timeout window
       }
-      return d.paid || d.status === "FAILED" ? false : 3000;
+      return d.paid || d.status === "FAILED" ? false : 1500;
     },
     retry: 2,
   });
@@ -649,7 +656,7 @@ function VoucherIssuedView({
           className="w-full h-11 rounded-xl border border-white/10 bg-black/20 text-sm font-semibold hover:bg-black/40 transition-colors flex items-center justify-center gap-2"
         >
           <Copy className="h-4 w-4" />
-          {copied ? "Imenakiliwa" : "Nakili"}
+          {copied ? "Imenakiliwa ✓" : "Copy Vocha"}
         </button>
         {(packageName || packagePrice) && (
           <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-white/5">
