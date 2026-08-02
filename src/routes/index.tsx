@@ -395,16 +395,21 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
     setSelectedPackage(pkg);
   };
 
-  const createPayment = useMutation({
-    mutationFn: () =>
-      api.createPayment({ package_id: selectedPackageId!, phone, router_key: routerKey }),
-    onSuccess: (data) => setReference(data.orderReference),
-  });
-
   // ⏱️ Max 120 polls (~3 minutes at 1.5s) before timing out to avoid
   // infinite polling while still giving slow mobile-money confirmations time.
   const MAX_POLLS = 120;
   const pollCountRef = useRef(0);
+
+  const createPayment = useMutation({
+    mutationFn: () =>
+      api.createPayment({ package_id: selectedPackageId!, phone, router_key: routerKey }),
+    onSuccess: (data) => {
+      // New payment → fresh poll budget (a previously timed-out payment must
+      // not exhaust the next one's budget).
+      pollCountRef.current = 0;
+      setReference(data.orderReference);
+    },
+  });
 
   const statusQuery = useQuery({
     queryKey: ["payment", reference],
@@ -429,6 +434,7 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
   };
 
   const handleReset = () => {
+    pollCountRef.current = 0; // reset poll budget for the next purchase
     setReference(null);
     createPayment.reset();
   };
