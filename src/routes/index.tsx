@@ -490,9 +490,9 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
       <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-start gap-3">
         <Info className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
         <div className="flex-1 text-sm">
-          <div className="font-semibold text-amber-100">M-Pesa (Vodacom) inasubiri kuwashwa</div>
+          <div className="font-semibold text-amber-100">M-Pesa (Vodacom)</div>
           <div className="text-amber-200/80 mt-1 leading-relaxed">
-            Malipo kupitia M-Pesa yatakuwa available hivi karibuni. Kwa sasa tumia <strong>Tigo Pesa</strong>, <strong>Airtel Money</strong>, au <strong>HaloPesa</strong> kulipa.
+            Malipo kupitia M-Pesa yatakuwa available hivi karibuni. Kwa sasa tumia <strong>Tigo Pesa</strong>, <strong>Airtel Money</strong>, au <strong>HaloPesa</strong> kulipia kifurushi chako.
           </div>
         </div>
       </div>
