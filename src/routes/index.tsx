@@ -60,6 +60,18 @@ function Index() {
   const [tab, setTab] = useState<Tab>("use");
   const [prefillCode, setPrefillCode] = useState("");
 
+  // ── Instant packages on "Nunua Vocha" ──
+  // Prefetch the package list on page load (same queryKey + queryFn as
+  // BuyVoucherForm) so the dropdown is already in the query cache the
+  // moment the user clicks "Nunua Vocha" — no "Inapakia vifurushi..." wait.
+  const routerKey = getRouterKeyFromUrl();
+  useQuery({
+    queryKey: ["packages", routerKey],
+    queryFn: ({ signal }) => api.listPackages(routerKey, signal),
+    staleTime: 60_000,
+    retry: 1,
+  });
+
   return (
     <main className="min-h-screen w-full flex flex-col items-center px-4 py-8 sm:py-14">
       <div className="w-full max-w-[500px]">
