@@ -67,6 +67,13 @@ export const api = {
   getSessions: (signal?: AbortSignal) =>
     apiRequest<HotspotSession[]>("/api/v1/sessions", { signal }),
 
+  // ── Support phone ──
+  // GET /api/v1/monitoring/support-phone — public admin/support number from the
+  // system settings (whatsapp_admin_phone). Portal shows it to customers who
+  // run into problems — no auth required.
+  getSupportPhone: (signal?: AbortSignal) =>
+    apiRequest<{ phone: string }>("/api/v1/monitoring/support-phone", { signal }),
+
   // ── Router monitoring ──
   // GET /api/v1/monitoring/routers — router status overview
   getRouterStatus: (signal?: AbortSignal) =>

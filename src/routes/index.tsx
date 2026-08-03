@@ -59,6 +59,9 @@ function formatPrice(tzs: number): string {
 function Index() {
   const [tab, setTab] = useState<Tab>("use");
   const [prefillCode, setPrefillCode] = useState("");
+  // When the user just bought a voucher, "Tumia Vocha" auto-activates it
+  // instantly — no second click needed.
+  const [autoActivate, setAutoActivate] = useState(false);
 
   // ── Instant packages on "Nunua Vocha" ──
   // Prefetch the package list on page load (same queryKey + queryFn as
@@ -71,6 +74,17 @@ function Index() {
     staleTime: 60_000,
     retry: 1,
   });
+
+  // ── Support phone from the system (whatsapp_admin_phone setting) ──
+  // Shown to customers who hit a problem. Falls back to the env value if
+  // the backend call fails or nothing is configured.
+  const supportPhoneQ = useQuery({
+    queryKey: ["support-phone"],
+    queryFn: ({ signal }) => api.getSupportPhone(signal),
+    staleTime: 10 * 60_000,
+    retry: 1,
+  });
+  const supportPhone = supportPhoneQ.data?.phone || BRAND_SUPPORT_PHONE;
 
   return (
     <main className="min-h-screen w-full flex flex-col items-center px-4 py-8 sm:py-14">
@@ -107,9 +121,20 @@ function Index() {
           <div className="p-4 sm:p-6">
             <div key={tab + prefillCode} className="animate-in fade-in-50 slide-in-from-bottom-2 duration-500">
               {tab === "use" ? (
-                <UseVoucherForm onBuyVoucher={() => setTab("buy")} prefillCode={prefillCode} />
+                <UseVoucherForm
+                  onBuyVoucher={() => setTab("buy")}
+                  prefillCode={prefillCode}
+                  autoActivate={autoActivate}
+                  supportPhone={supportPhone}
+                />
               ) : (
-                <BuyVoucherForm onVoucherIssued={(code: string) => { setPrefillCode(code); setTab("use"); }} />
+                <BuyVoucherForm
+                  onVoucherIssued={(code: string) => {
+                    setPrefillCode(code);
+                    setAutoActivate(true);
+                    setTab("use");
+                  }}
+                />
               )}
             </div>
           </div>
@@ -120,8 +145,8 @@ function Index() {
             <Phone className="h-3.5 w-3.5 text-[var(--brand-pink)]" />
             <span>
               Msaada: Piga{" "}
-              <a href={`tel:${BRAND_SUPPORT_PHONE}`} className="font-semibold text-foreground hover:text-[var(--brand-pink)] transition-colors">
-                {BRAND_SUPPORT_PHONE}
+              <a href={`tel:${supportPhone}`} className="font-semibold text-foreground hover:text-[var(--brand-pink)] transition-colors">
+                {supportPhone}
               </a>{" "}
               kama una tatizo lolote
             </span>
@@ -229,28 +254,59 @@ function getVoucherErrorInfo(error: unknown): { message: string } | null {
   return null;
 }
 
-function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () => void; prefillCode?: string }) {
+function UseVoucherForm({
+  onBuyVoucher,
+  prefillCode = "",
+  autoActivate = false,
+  supportPhone = BRAND_SUPPORT_PHONE,
+}: {
+  onBuyVoucher: () => void;
+  prefillCode?: string;
+  autoActivate?: boolean;
+  supportPhone?: string;
+}) {
   const [code, setCode] = useState(prefillCode);
   const macAddress = getMacFromUrl();
   const ipAddress = getIpFromUrl();
   const routerKey = getRouterKeyFromUrl();
   const [activating, setActivating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const autoFiredRef = useRef(false);
 
   const mutation = useMutation({
     mutationFn: (voucherCode: string) =>
       api.activateVoucher(voucherCode.trim(), macAddress, ipAddress, routerKey),
     onSuccess: (data) => {
       setActivating(true);
-      // Redirect to neverssl.com so Windows detects internet. The MikroTik
-      // already has bypass binding from backend REST API, so the user is
-      // already authenticated — the short delay is only so the success
-      // screen is readable.
+      // Show the Connected screen for 3 seconds, then redirect to Google so
+      // the device detects live internet. The MikroTik already has the
+      // bypass binding from the backend REST API (pushed instantly in
+      // background), so the user is authenticated the moment this screen
+      // appears — the delay is only so the success screen is readable.
       setTimeout(() => {
-        window.location.href = "http://neverssl.com";
-      }, 1800);
+        window.location.href = "https://www.google.com";
+      }, 3000);
     },
   });
+
+  // ── Instant activation after buying a voucher ──
+  // When the user just paid and clicks "Tumia Vocha", the code is prefilled
+  // and autoActivate is set — fire the activation immediately, no second
+  // click needed. Internet comes on the moment the router pushes the
+  // bypass binding (background, ~1s).
+  useEffect(() => {
+    if (!autoActivate || autoFiredRef.current) return;
+    if (!code.trim()) return;
+    if (!macAddress) {
+      setNotice(
+        `Unaweza kununua vocha na kuziona kutoka popote. Lakini ili kuwasha internet, unganisha kwenye mtandao wa ${BRAND_NAME} WIFI kwanza (WiFi ya Shimba), kisha fungua portal tena kupitia ujumbe wa kuingia (login redirect) wa mtandao huo.`
+      );
+      return;
+    }
+    autoFiredRef.current = true;
+    setNotice(null);
+    mutation.mutate(code);
+  }, [autoActivate, code, macAddress]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,9 +360,10 @@ function UseVoucherForm({ onBuyVoucher, prefillCode = "" }: { onBuyVoucher: () =
             <span className="text-muted-foreground">Expires</span>
             <span className="text-white font-semibold">{expiryDate} {expiryTime}</span>
           </div>
-          <div className="pt-3 border-t border-white/5 text-center">              <a href={`tel:${BRAND_SUPPORT_PHONE}`} className="inline-flex items-center gap-2 text-sm text-[var(--brand-pink)] hover:underline">
+          <div className="pt-3 border-t border-white/5 text-center">
+            <a href={`tel:${supportPhone}`} className="inline-flex items-center gap-2 text-sm text-[var(--brand-pink)] hover:underline">
               <Phone className="h-4 w-4" />
-              Msaada: {BRAND_SUPPORT_PHONE}
+              Msaada: {supportPhone}
             </a>
           </div>
         </div>
