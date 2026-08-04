@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Override Nitro preset from Cloudflare (default) to Vercel so local builds
+  // match Vercel CI (which injects it) and emit .vercel/output deterministically.
+  nitro: {
+    preset: "vercel",
+  },
 });
