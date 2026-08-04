@@ -8,9 +8,11 @@
 //
 // Runs automatically after `vite build` + `prerender-shell.mjs` via the
 // `postbuild` npm script.
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const staticDir = join(root, ".vercel", "output", "static");
@@ -58,6 +60,17 @@ html = html.replace(/<link rel="icon" href="(\/[^"]+\.ico)"[^>]*\/?>/g, (_m, hre
 });
 
 // ---- 3. Inline JS ---------------------------------------------------
+// All JS assets become modules in a tiny in-module registry:
+//   window.__PORTAL_FACTORIES__[url]  -> lazy factory function
+//   window.__PORTAL_MODULES__[url]    -> resolved exports object
+//   __portalRequire(url)              -> run factory (once), return exports
+//   __portalChunk(url)                -> Promise<exports> (dynamic import)
+// Static `import{...}from"./X.js"` between ANY chunks (entry -> vendor,
+// chunk -> vendor, chunk -> entry) is rewritten to read the dependency's
+// exports through __portalRequire(), which executes the dependency's
+// factory lazily. This handles multi-chunk builds (e.g. Vite splitting
+// a QueryClientProvider vendor chunk) instead of assuming every chunk
+// imports only from the entry's window.__PORTAL_EXPORTS__.
 const scriptTags = [...html.matchAll(/<script([^>]*)><\/script>/g)].map((m) => m[0]);
 const moduleSrcTags = scriptTags.filter((t) => /type="module"/.test(t) && /src="\/assets\//.test(t));
 
@@ -75,64 +88,21 @@ if (moduleSrcTags.length === 0) {
   if (!jsFiles.includes(entryHref)) jsFiles.push(entryHref);
   const chunks = jsFiles.filter((f) => f !== entryHref);
 
-  // Read + transform each chunk: strip its static `import{...}from"..."`,
-  // wrap the code in a lazy factory function that destructures the needed
-  // bindings from window.__PORTAL_EXPORTS__ (populated by the entry) and
-  // returns the module's exported members. The factory is invoked lazily
-  // by __portalChunk(), which the rewritten dynamic import calls.
-  const chunkFactories = chunks
-    .map((url) => {
-      const file = join(staticDir, url.replace(/^\//, ""));
-      if (!existsSync(file)) return null;
-      let code = readFileSync(file, "utf8");
+  const parseImportBindings = (spec) =>
+    spec
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const parts = pair.split(/\s+as\s+/);
+        const remote = parts[0].trim();
+        const local = parts.length > 1 ? parts[1].trim() : remote;
+        return `${remote}:${local}`;
+      })
+      .join(",");
 
-      const importMatch = code.match(/^import\{([^}]*)\}from"[^"]+";?/);
-      let bindings = "";
-      if (importMatch) {
-        bindings = importMatch[1]
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((pair) => {
-            const parts = pair.split(/\s+as\s+/);
-            const remote = parts[0].trim();
-            const local = parts.length > 1 ? parts[1].trim() : remote;
-            return `${remote}:${local}`;
-          })
-          .join(",");
-        code = code.replace(/^import\{[^}]*\}from"[^"]+";?/, "");
-      }
-
-      // export{Oe as component}; -> return {component:Oe};
-      code = code.replace(/export\{([^}]*)\};?\s*$/, (_m, spec) => {
-        const entries = spec
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((pair) => {
-            const parts = pair.split(/\s+as\s+/);
-            const local = parts[0].trim();
-            const as = parts.length > 1 ? parts[1].trim() : local;
-            return `${as}:${local}`;
-          })
-          .join(",");
-        return `return {${entries}};`;
-      });
-
-      const factoryBody = bindings
-        ? `const {${bindings}}=window.__PORTAL_EXPORTS__;${code}`
-        : code;
-      return `window.__PORTAL_FACTORIES__[${JSON.stringify(url)}]=function(){${factoryBody}};`;
-    })
-    .filter(Boolean)
-    .join("\n");
-
-  // Transform the entry: turn its trailing `export{...}` into a
-  // window.__PORTAL_EXPORTS__ object, and rewrite dynamic chunk imports
-  // to resolve from the lazy factory map.
-  let entry = readFileSync(entryPath, "utf8");
-  entry = entry.replace(/export\{([^}]*)\};?\s*$/, (_m, spec) => {
-    const entries = spec
+  const parseExportBindings = (spec) =>
+    spec
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean)
@@ -143,13 +113,53 @@ if (moduleSrcTags.length === 0) {
         return `${as}:${local}`;
       })
       .join(",");
-    return `window.__PORTAL_EXPORTS__={${entries}};`;
+
+  // Resolve a relative `./X.js` dep to its absolute /assets/X.js key.
+  const resolveDepUrl = (from) => "/assets/" + from.split("/").pop();
+
+  // Read + transform a chunk into a lazy factory assignment.
+  //   import{A as e,...}from"./dep.js";  ->  const {A:e,...}=__portalRequire("/assets/dep.js");
+  //   ...body... export{X as y};          ->  ...body... window.__PORTAL_MODULES__[url]={y:X};
+  const buildChunkFactory = (url) => {
+    const file = join(staticDir, url.replace(/^\//, ""));
+    if (!existsSync(file)) return null;
+    let code = readFileSync(file, "utf8");
+
+    let importLine = "";
+    code = code.replace(/^import\{([^}]*)\}from"([^"]+)";?/m, (_m, spec, from) => {
+      importLine = `const {${parseImportBindings(spec)}}=__portalRequire(${JSON.stringify(resolveDepUrl(from))});`;
+      return "";
+    });
+
+    code = code.replace(/export\{([^}]*)\};?\s*$/m, (_m, spec) => {
+      return `window.__PORTAL_MODULES__[${JSON.stringify(url)}]={${parseExportBindings(spec)}};`;
+    });
+
+    return `window.__PORTAL_FACTORIES__[${JSON.stringify(url)}]=function(){${importLine}${code}};`;
+  };
+
+  const chunkFactories = chunks.map(buildChunkFactory).filter(Boolean).join("\n");
+
+  // Transform the entry: resolve its static imports the same way, rewrite
+  // dynamic chunk imports to resolve from the factory map, and publish its
+  // exports to the registry (chunks that import from the entry need them).
+  let entry = readFileSync(entryPath, "utf8");
+
+  let entryImportLine = "";
+  entry = entry.replace(/^import\{([^}]*)\}from"([^"]+)";?/m, (_m, spec, from) => {
+    entryImportLine = `const {${parseImportBindings(spec)}}=__portalRequire(${JSON.stringify(resolveDepUrl(from))});`;
+    return "";
   });
+
   // dynamic import(`./routes-X.js`) -> Promise.resolve(__portalChunk(...))
   entry = entry.replace(/import\(`\.\/([^`]+\.js)`\)/g, (_m, name) => {
     const match = chunks.find((url) => url.endsWith(name));
     const key = match ? JSON.stringify(match) : JSON.stringify("/assets/" + name);
     return `Promise.resolve(__portalChunk(${key}))`;
+  });
+
+  entry = entry.replace(/export\{([^}]*)\};?\s*$/m, (_m, spec) => {
+    return `window.__PORTAL_EXPORTS__={${parseExportBindings(spec)}};`;
   });
 
   // Escape any literal `</script` inside the JS so the inline <script>
@@ -163,11 +173,32 @@ if (moduleSrcTags.length === 0) {
     `"use strict";`,
     `window.__PORTAL_EXPORTS__={};`,
     `window.__PORTAL_FACTORIES__={};`,
-    `function __portalChunk(u){var m=window.__PORTAL_FACTORIES__[u];if(typeof m==="function"){m=m();window.__PORTAL_FACTORIES__[u]=m;}return m;}`,
+    `window.__PORTAL_MODULES__={};`,
+    `function __portalRequire(u){if(u in window.__PORTAL_MODULES__)return window.__PORTAL_MODULES__[u];var f=window.__PORTAL_FACTORIES__[u];if(typeof f==="function"){f();}return window.__PORTAL_MODULES__[u];}`,
+    `function __portalChunk(u){return Promise.resolve(__portalRequire(u));}`,
     escapeScriptClosers(chunkFactories),
-    escapeScriptClosers(entry),
+    escapeScriptClosers(entryImportLine + entry),
+    // Publish the entry's exports AFTER it runs, so chunks that statically
+    // import from the entry (single-chunk builds) resolve them lazily.
+    `window.__PORTAL_MODULES__[${JSON.stringify(entryHref)}]=window.__PORTAL_EXPORTS__;`,
     `})();`,
   ].join("\n");
+
+  // ---- Syntax safety check -----------------------------------------
+  // A broken inline module (e.g. a leftover static import inside the IIFE)
+  // silently kills hydration - the page renders but every button is dead.
+  // Validate with node --check so a bad build FAILS here instead of
+  // shipping to production.
+  try {
+    const tmpCheck = join(tmpdir(), "portal-inline-check.mjs");
+    writeFileSync(tmpCheck, inlineModule);
+    execFileSync(process.execPath, ["--check", tmpCheck], { stdio: "pipe" });
+    rmSync(tmpCheck, { force: true });
+  } catch (err) {
+    console.error("[inline-assets] FATAL: inline module failed JS syntax check. NOT writing index.html.");
+    console.error(err.stderr ? err.stderr.toString().slice(0, 800) : err.message);
+    process.exit(1);
+  }
 
   // Replace the original module script tag with a unique PLACEHOLDER first.
   // (Function replacement so `$` sequences in the tag are not interpolated.)
