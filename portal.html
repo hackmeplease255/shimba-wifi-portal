@@ -51,8 +51,7 @@
   .hidden { display: none !important; }
 
   /* network strip */
-  .nets { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 9px 11px; margin-bottom: 10px; }
-  .nets-lbl { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .nets { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 7px 10px; margin-bottom: 8px; }
   .nets-row { display: flex; flex-wrap: wrap; }
   .nets-row span {
     display: inline-flex; align-items: center;
@@ -108,16 +107,16 @@
 
   /* warning banner (below Lipa Sasa) */
   .warn {
-    margin-top: 12px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.35);
-    border-radius: 14px; padding: 10px 12px; display: flex; align-items: flex-start;
+    margin-top: 10px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.35);
+    border-radius: 12px; padding: 8px 10px; display: flex; align-items: center;
   }
   .warn .ico {
     width: 18px; height: 18px; border-radius: 50%; background: rgba(245,158,11,.25); color: #b45309;
     font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center;
     flex: none; margin: 1px 9px 0 0;
   }
-  .warn b { color: #92400e; font-size: 12.5px; display: block; margin-bottom: 2px; }
-  .warn span { color: #a16207; font-size: 12px; line-height: 1.45; display: block; }
+  .warn b { color: #92400e; font-size: 12.5px; display: inline; margin-bottom: 0; }
+  .warn span { color: #a16207; font-size: 12px; line-height: 1.35; display: block; }
 
   /* messages */
   .err, .notice { margin-top: 10px; border-radius: 13px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; }
@@ -181,7 +180,6 @@
     <p class="sub">Chagua kifurushi, weka namba ya simu, kisha lipa kupitia mtandao wako wa simu.</p>
 
     <div class="nets">
-      <div class="nets-lbl">Tunakubali malipo kutoka mitandao hii</div>
       <div class="nets-row">
         <span><i style="background:#1e8fe0"></i>Tigo</span>
         <span><i style="background:#e3120b"></i>Airtel</span>
@@ -203,10 +201,7 @@
 
     <div class="warn">
       <span class="ico">!</span>
-      <div>
-        <b>M-Pesa (Vodacom)</b>
-        <span>Malipo kupitia M-Pesa yatakuwa available hivi karibuni. Kwa sasa tumia <b>Tigo Pesa</b>, <b>Airtel Money</b>, au <b>HaloPesa</b> kulipia kifurushi chako.</span>
-      </div>
+      <span><b>M-Pesa (Vodacom) haipatikani kwa sasa.</b> Tafadhali tumia <b>Tigo Pesa</b>, <b>Airtel Money</b> au <b>HaloPesa</b>.</span>
     </div>
   </section>
 
