@@ -53,10 +53,6 @@ function errorMessage(e: unknown): string {
   return "Hitilafu isiyojulikana. Jaribu tena.";
 }
 
-function formatPrice(tzs: number): string {
-  return `${tzs.toLocaleString("en-US")} TZS`;
-}
-
 function formatTZS(tzs: number): string {
   return `TZS ${tzs.toLocaleString("en-US")}`;
 }
@@ -859,7 +855,7 @@ function VoucherIssuedView({
         {(packageName || packagePrice) && (
           <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t border-slate-100">
             <span>{packageName ?? "—"}</span>
-            <span>{packagePrice !== null ? formatPrice(packagePrice) : "—"}</span>
+            <span>{packagePrice !== null ? formatTZS(packagePrice) : "—"}</span>
           </div>
         )}
       </div>
