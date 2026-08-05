@@ -9,13 +9,14 @@ import {
   Ticket,
   ShoppingCart,
   CreditCard,
-  ChevronDown,
   Shield,
   Phone,
   AlertCircle,
   CheckCircle2,
   Copy,
   Info,
+  Check,
+  Smartphone,
 } from "lucide-react";
 
 import { api, ApiError, type Package } from "../lib/api/endpoints";
@@ -54,6 +55,20 @@ function errorMessage(e: unknown): string {
 
 function formatPrice(tzs: number): string {
   return `${tzs.toLocaleString("en-US")} TZS`;
+}
+
+function formatTZS(tzs: number): string {
+  return `TZS ${tzs.toLocaleString("en-US")}`;
+}
+
+function formatLimit(mb?: number | null): string {
+  if (!mb || mb <= 0) return "";
+  return mb >= 1024 ? `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB` : `${mb} MB`;
+}
+
+function packageDurationLabel(days: number): string {
+  if (days <= 1) return "Saa 24";
+  return `Siku ${days}`;
 }
 
 function Index() {
@@ -466,15 +481,9 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
   const [phone, setPhone] = useState("");
   const [reference, setReference] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (packagesQuery.data && packagesQuery.data.length > 0 && selectedPackageId === null) {
-      const first = packagesQuery.data[0];
-      setSelectedPackageId(first.id);
-      setSelectedPackage(first);
-    }
-  }, [packagesQuery.data, selectedPackageId]);
-
-  // Track the selected package for display in voucher view
+  // Track the selected package for display in voucher view. The customer
+  // must deliberately pick a package — nothing is pre-selected, so
+  // "Lipa Sasa" stays disabled until the user chooses one.
   const handlePackageChange = (id: number) => {
     setSelectedPackageId(id);
     const pkg = packagesQuery.data?.find((p) => p.id === id) ?? null;
@@ -561,23 +570,14 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
         </p>
       </div>
 
-      {/* M-Pesa Temporary Unavailable Warning */}
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-start gap-3">
-        <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-        <div className="flex-1 text-sm">
-          <div className="font-semibold text-amber-800">M-Pesa (Vodacom)</div>
-          <div className="text-amber-700 mt-1 leading-relaxed">
-            Malipo kupitia M-Pesa yatakuwa available hivi karibuni. Kwa sasa tumia <strong>Tigo Pesa</strong>, <strong>Airtel Money</strong>, au <strong>HaloPesa</strong> kulipia kifurushi chako.
-          </div>
-        </div>
-      </div>
+      {/* Mobile money networks we accept */}
+      <NetworkStrip />
 
       <div className="space-y-2">
-        <label htmlFor="package-select" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Kifurushi
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Chagua Kifurushi
         </label>
-        <PackageSelect
-          id="package-select"
+        <PackageList
           query={packagesQuery}
           selectedId={selectedPackageId}
           onChange={handlePackageChange}
@@ -594,13 +594,47 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
           onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
           inputMode="numeric"
           pattern="0[67]\d{8}"
-          placeholder="07XXXXXXXX au 06XXXXXXXX"
+          placeholder="07XXXXXXXX"
+          autoComplete="off"
           disabled={createPayment.isPending}
           className="w-full h-14 rounded-2xl bg-white border border-slate-200 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:bg-slate-50 focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)] disabled:opacity-60"
         />
+        {phone.length > 0 && !/^0[67]\d{8}$/.test(phone) && (
+          <p className="text-[11px] text-red-600 flex items-center gap-1 mt-1.5">
+            <AlertCircle className="h-3 w-3 shrink-0" /> Namba si sahihi — mfano: 07XXXXXXXX
+          </p>
+        )}
       </div>
 
       {createPayment.isError && <ErrorBanner message={errorMessage(createPayment.error)} />}
+
+      {/* Selected package summary — directly above Lipia Sasa */}
+      {selectedPackage ? (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-center justify-between gap-3">
+          <span className="text-sm text-emerald-800">
+            <span className="font-semibold">Selected:</span>{" "}
+            <span className="font-bold">{selectedPackage.name} — {formatTZS(selectedPackage.price)}</span>
+          </span>
+          <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+            {packageDurationLabel(selectedPackage.duration_days)}
+          </span>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-3 text-center text-xs text-muted-foreground">
+          Chagua kifurushi kwanza ili kuona muhtasari wa malipo
+        </div>
+      )}
+
+      {/* M-Pesa Temporary Unavailable Warning — above Lipia Sasa */}
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-start gap-3">
+        <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="flex-1 text-sm">
+          <div className="font-semibold text-amber-800">M-Pesa (Vodacom)</div>
+          <div className="text-amber-700 mt-1 leading-relaxed">
+            Malipo kupitia M-Pesa yatakuwa available hivi karibuni. Kwa sasa tumia <strong>Tigo Pesa</strong>, <strong>Airtel Money</strong>, au <strong>HaloPesa</strong> kulipia kifurushi chako.
+          </div>
+        </div>
+      </div>
 
       <PrimaryButton
         pending={createPayment.isPending}
@@ -617,13 +651,41 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
   );
 }
 
-function PackageSelect({
-  id,
+const SUPPORTED_NETWORKS = [
+  { name: "Tigo", color: "#1e8fe0" },
+  { name: "Airtel", color: "#e3120b" },
+  { name: "Halotel", color: "#7c3aed" },
+  { name: "TTCL", color: "#0284c7" },
+  { name: "Zantel", color: "#f59e0b" },
+];
+
+function NetworkStrip() {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        <Smartphone className="h-3.5 w-3.5" />
+        Tunakubali malipo kutoka mitandao hii
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {SUPPORTED_NETWORKS.map((n) => (
+          <span
+            key={n.name}
+            className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700"
+          >
+            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: n.color }} />
+            {n.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PackageList({
   query,
   selectedId,
   onChange,
 }: {
-  id?: string;
   query: ReturnType<typeof useQuery<Package[], Error>>;
   selectedId: number | null;
   onChange: (id: number) => void;
@@ -643,20 +705,53 @@ function PackageSelect({
     return <ErrorBanner message="Hakuna vifurushi vinavyopatikana kwa sasa." />;
   }
   return (
-    <div className="relative">
-      <select
-        id={id}
-        value={selectedId ?? ""}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-14 appearance-none rounded-2xl bg-white border border-slate-200 px-5 pr-12 text-base font-medium outline-none transition-all duration-300 focus:border-[var(--brand-pink)] focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)]"
-      >
-        {packages.map((p) => (
-          <option key={p.id} value={p.id} className="bg-white">
-            {p.name} — {formatPrice(p.price)}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+    <div role="radiogroup" aria-label="Chagua kifurushi" className="space-y-2.5">
+      {packages.map((p) => {
+        const selected = selectedId === p.id;
+        const perks = [
+          p.data_limit_mb ? `Data: ${formatLimit(p.data_limit_mb)}` : "",
+          p.speed_limit_mbps ? `Speed: ${p.speed_limit_mbps} Mbps` : "",
+        ].filter(Boolean);
+        return (
+          <button
+            key={p.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(p.id)}
+            className={`w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 flex items-center gap-3 ${
+              selected
+                ? "border-[var(--brand-pink)] bg-[var(--brand-pink)]/5 shadow-[0_8px_25px_-12px_var(--brand-pink)]"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 active:scale-[0.995]"
+            }`}
+          >
+            <span
+              className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                selected ? "border-[var(--brand-pink)] bg-[var(--brand-pink)]" : "border-slate-300 bg-white"
+              }`}
+            >
+              {selected && <Check className="h-3 w-3 text-white" strokeWidth={3.5} />}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="flex items-center gap-2 flex-wrap">
+                <span className="text-[15px] font-bold">{p.name}</span>
+                <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                  {packageDurationLabel(p.duration_days)}
+                </span>
+              </span>
+              {p.description && (
+                <span className="block text-xs text-muted-foreground mt-1">{p.description}</span>
+              )}
+              {perks.length > 0 && (
+                <span className="block text-xs text-muted-foreground mt-1">{perks.join(" · ")}</span>
+              )}
+            </span>
+            <span className="shrink-0 text-base font-black text-gradient-brand">
+              {formatTZS(p.price)}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
