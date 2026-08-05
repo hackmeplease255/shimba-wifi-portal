@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>SHIMBA WIFI — Unganisha kwa haraka</title>
+<meta name="description" content="SHIMBA WIFI hotspot portal. Tumia vocha yako au nunua kifurushi cha internet kwa haraka na salama.">
+<link rel="icon" href="/favicon.ico">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --pink: #e0115f; --purple: #7c3aed; --ink: #0f172a; --mut: #64748b;
+    --line: #e2e8f0; --bg: #f1f5f9; --card: #ffffff; --ok: #059669;
+  }
+  html, body { background: var(--bg); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--ink); min-height: 100vh; padding: 14px 14px 26px; line-height: 1.4;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+
+  /* header */
+  .top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .logo {
+    width: 42px; height: 42px; border-radius: 14px; flex: none;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    color: #fff; font-weight: 900; font-size: 20px; display: flex; align-items: center; justify-content: center;
+  }
+  .ttl { flex: 1; min-width: 0; }
+  .ttl h1 { font-size: 19px; line-height: 1.15; font-weight: 800; }
+  .ttl h1 span { color: var(--mut); font-weight: 800; }
+  .live {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: 3px;
+    background: rgba(5,150,105,.1); border: 1px solid rgba(5,150,105,.3);
+    color: #047857; font-size: 9px; font-weight: 800; letter-spacing: 1px;
+    border-radius: 999px; padding: 2px 8px; text-transform: uppercase;
+  }
+  .live i { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+  /* tabs */
+  .tabs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+    background: #e2e8f0; border: 1px solid var(--line); border-radius: 14px; padding: 4px; margin-bottom: 12px;
+  }
+  .tab {
+    border: 0; background: transparent; border-radius: 11px; padding: 10px 0;
+    font-size: 13px; font-weight: 700; color: var(--mut); cursor: pointer; font-family: inherit;
+  }
+  .tab.on { background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
+  .screen h2 { font-size: 16px; font-weight: 800; }
+  .sub { font-size: 12.5px; color: var(--mut); margin: 3px 0 10px; }
+  .hidden { display: none !important; }
+
+  /* network strip */
+  .nets { background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 9px 11px; margin-bottom: 10px; }
+  .nets-lbl { font-size: 10px; font-weight: 800; color: var(--mut); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .nets-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .nets-row span {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 4px 10px; font-size: 11.5px; font-weight: 700; color: #334155;
+  }
+  .nets-row i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+  /* package grid 2x2 */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pkg {
+    position: relative; text-align: left; cursor: pointer; font-family: inherit;
+    background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 11px 12px;
+    display: flex; flex-direction: column; gap: 3px; min-height: 74px;
+    transition: border-color .15s, background .15s;
+  }
+  .pkg:active { transform: scale(.985); }
+  .pkg.sel { border-color: var(--pink); background: #fff0f6; }
+  .pkg .tick {
+    position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid #cbd5e1; background: #fff; display: none; align-items: center; justify-content: center;
+  }
+  .pkg.sel .tick { display: flex; border-color: var(--pink); background: var(--pink); }
+  .pkg.sel .tick::after { content: "✓"; color: #fff; font-size: 11px; font-weight: 900; }
+  .pk-name { font-size: 14.5px; font-weight: 800; padding-right: 14px; }
+  .pk-sub { font-size: 10.5px; color: var(--mut); }
+  .pk-price { font-size: 13.5px; font-weight: 900; color: var(--pink); margin-top: auto; }
+  .mini-load { grid-column: 1 / -1; text-align: center; font-size: 12.5px; color: var(--mut); padding: 14px 0; }
+
+  /* inputs */
+  .lbl { display: block; font-size: 10.5px; font-weight: 800; color: var(--mut); text-transform: uppercase; letter-spacing: .6px; margin: 12px 0 5px; }
+  input {
+    width: 100%; height: 46px; border: 1px solid var(--line); border-radius: 13px;
+    padding: 0 14px; font-size: 15px; font-family: inherit; background: #fff; outline: none; color: var(--ink);
+  }
+  input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(224,17,95,.12); }
+  input:disabled { opacity: .55; }
+
+  /* buttons */
+  .btn {
+    width: 100%; border: 0; cursor: pointer; font-family: inherit;
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    color: #fff; font-size: 15px; font-weight: 800; letter-spacing: .2px;
+    border-radius: 14px; height: 48px; margin-top: 12px;
+    box-shadow: 0 10px 24px -12px var(--pink);
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.985); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+  .btn.ghost {
+    background: #fff; color: var(--ink); border: 1px solid var(--line);
+    box-shadow: none; font-weight: 700; height: 42px;
+  }
+
+  /* warning banner (below Lipa Sasa) */
+  .warn {
+    margin-top: 12px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.35);
+    border-radius: 14px; padding: 10px 12px; display: flex; gap: 9px; align-items: flex-start;
+  }
+  .warn b { color: #92400e; font-size: 12.5px; display: block; margin-bottom: 2px; }
+  .warn span { color: #a16207; font-size: 12px; line-height: 1.45; display: block; }
+  .warn .ico { width: 18px; height: 18px; border-radius: 50%; background: rgba(245,158,11,.25); color: #b45309; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex: none; margin-top: 1px; }
+
+  /* messages */
+  .err, .notice {
+    margin-top: 10px; border-radius: 13px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45;
+  }
+  .err { background: rgba(220,38,38,.09); border: 1px solid rgba(220,38,38,.3); color: #b91c1c; }
+  .notice { background: rgba(2,132,199,.08); border: 1px solid rgba(2,132,199,.3); color: #0369a1; }
+
+  /* transient screens */
+  .center { text-align: center; padding: 26px 6px 6px; }
+  .spinner {
+    width: 40px; height: 40px; margin: 0 auto 12px; border-radius: 50%;
+    border: 3px solid rgba(224,17,95,.15); border-top-color: var(--pink);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ok {
+    width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 50%;
+    background: rgba(224,17,95,.1); border: 2px solid rgba(224,17,95,.35);
+    color: var(--pink); font-size: 26px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+  }
+  .ok.green { background: rgba(5,150,105,.1); border-color: rgba(5,150,105,.35); color: var(--ok); }
+
+  .vbox {
+    margin-top: 12px; background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+  }
+  .vlabel { font-size: 9.5px; font-weight: 800; color: var(--mut); text-transform: uppercase; letter-spacing: 1.5px; text-align: center; }
+  .vcode { font-size: 24px; font-weight: 900; letter-spacing: 3px; text-align: center; color: var(--pink); margin: 6px 0 10px; word-break: break-all; }
+  .vmeta { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--mut); border-top: 1px solid var(--line); margin-top: 9px; padding-top: 8px; }
+  .tiny { font-size: 11px; color: var(--mut); margin-top: 8px; }
+
+  footer { margin-top: 16px; text-align: center; }
+  .support { font-size: 11.5px; color: var(--mut); }
+  .support a { color: var(--pink); font-weight: 700; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">S</div>
+    <div class="ttl">
+      <h1>SHIMBA <span>WIFI</span></h1>
+      <span class="live"><i></i>LIVE</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button id="tabUse" class="tab on" type="button">Tumia Vocha</button>
+    <button id="tabBuy" class="tab" type="button">Nunua Vocha</button>
+  </nav>
+
+  <!-- TUMIA VOCHA -->
+  <section id="screenUse" class="screen card">
+    <h2>Tumia Vocha</h2>
+    <p class="sub">Weka voucher uliyonunua ili kuanza kutumia internet.</p>
+    <input id="vcode" placeholder="Ingiza Voucher Code" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <div id="useMsg" class="hidden"></div>
+    <button id="useBtn" class="btn" type="button" disabled>Unganisha na WiFi</button>
+    <p class="tiny" style="text-align:center; margin-top:9px;">Voucher yako itahakikiwa kabla ya kukupa internet.</p>
+  </section>
+
+  <!-- NUNUA VOCHA -->
+  <section id="screenBuy" class="screen card hidden">
+    <h2>Nunua Vocha</h2>
+    <p class="sub">Chagua kifurushi, weka namba ya simu, kisha lipa kupitia mtandao wako wa simu.</p>
+
+    <div class="nets">
+      <div class="nets-lbl">Tunakubali malipo kutoka mitandao hii</div>
+      <div class="nets-row">
+        <span><i style="background:#1e8fe0"></i>Tigo</span>
+        <span><i style="background:#e3120b"></i>Airtel</span>
+        <span><i style="background:#7c3aed"></i>Halotel</span>
+        <span><i style="background:#0284c7"></i>TTCL</span>
+        <span><i style="background:#f59e0b"></i>Zantel</span>
+      </div>
+    </div>
+
+    <div id="pkgGrid" class="grid"><div class="mini-load">Inapakia vifurushi...</div></div>
+    <div id="pkgErr" class="err hidden"></div>
+
+    <label class="lbl" for="phone">Nambari ya Simu</label>
+    <input id="phone" placeholder="07XXXXXXXX" inputmode="numeric" maxlength="10" autocomplete="off">
+    <div id="phoneErr" class="err hidden"></div>
+    <div id="payErr" class="err hidden"></div>
+
+    <button id="payBtn" class="btn" type="button" disabled>Lipa Sasa</button>
+
+    <div class="warn">
+      <span class="ico">!</span>
+      <div>
+        <b>M-Pesa (Vodacom)</b>
+        <span>Malipo kupitia M-Pesa yatakuwa available hivi karibuni. Kwa sasa tumia <b>Tigo Pesa</b>, <b>Airtel Money</b>, au <b>HaloPesa</b> kulipia kifurushi chako.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUBIRI MALIPO -->
+  <section id="screenPay" class="screen card hidden">
+    <div class="center">
+      <div class="spinner"></div>
+      <h3 id="payTitle" style="font-size:15px;">Subiri malipo yathibitishwe</h3>
+      <p id="payMsg" class="sub" style="margin-bottom:2px;">Angalia simu yako na thibitisha ombi la malipo lililotumwa.</p>
+      <button id="payCancelBtn" class="btn ghost" type="button" style="margin-top:14px;">Ghairi</button>
+    </div>
+  </section>
+
+  <!-- VOCHA IMETOLEWA -->
+  <section id="screenVoucher" class="screen card hidden">
+    <div class="center" style="padding-top:8px;">
+      <div class="ok green">✓</div>
+      <h3 style="font-size:16px;">Malipo Yamekamilika</h3>
+      <p class="sub">Voucher yako iko tayari. Tumia nambari hii kuunganisha WiFi.</p>
+    </div>
+    <div class="vbox">
+      <div class="vlabel">Voucher Code</div>
+      <div id="vcodeOut" class="vcode"></div>
+      <button id="copyBtn" class="btn ghost" type="button">Copy Vocha</button>
+      <div class="vmeta"><span id="vname"></span><span id="vprice"></span></div>
+    </div>
+    <button id="useVoucherBtn" class="btn" type="button">Tumia Vocha</button>
+    <button id="buyAgainBtn" class="btn ghost" type="button">Nunua Nyingine</button>
+  </section>
+
+  <!-- UMEUNGANISHWA -->
+  <section id="screenConnected" class="screen card hidden">
+    <div class="center">
+      <div class="ok green">📶</div>
+      <h3 style="font-size:17px;">Umeunganishwa!</h3>
+      <p class="sub">Karibu SHIMBA WIFI. Sasa unaweza kutumia internet kwa uhuru.</p>
+      <p class="tiny">Inakupeleka kwenye internet...</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="support">Msaada: Piga <a id="supportTel" href="tel:0772940535">0772940535</a> kama una tatizo lolote</div>
+    <p class="tiny">Powered by <b>SHIMBA WIFI</b></p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = ('__API_BASE__' || '').replace(/\/+$/, '') || 'https://api.shimbawifi.xyz';
+  var SUPPORT_FALLBACK = '0772940535';
+  var MAX_POLLS = 120;
+
+  function qs() {
+    var o = {};
+    (window.location.search || '').replace(/^\?/, '').split('&').forEach(function (p) {
+      if (!p) return;
+      var i = p.indexOf('=');
+      var k = i > -1 ? p.slice(0, i) : p;
+      var v = i > -1 ? p.slice(i + 1) : '';
+      try { v = decodeURIComponent(v); } catch (e) {}
+      if (k) o[k] = v;
+    });
+    return o;
+  }
+  var P = qs();
+  var MAC = P.mac || '';
+  var IP = P.ip || '';
+  var ROUTER_KEY = P.router || '';
+  var DST = P['link-orig'] || P.dst || '';
+
+  function $(id) { return document.getElementById(id); }
+
+  // ── tiny fetch with 10s timeout + envelope unwrap ──
+  function req(path, opts) {
+    opts = opts || {};
+    var ctl = new AbortController();
+    var timer = setTimeout(function () { ctl.abort(); }, 10000);
+    var init = { method: opts.method || 'GET', signal: ctl.signal };
+    if (opts.body) {
+      init.headers = { 'Content-Type': 'application/json' };
+      init.body = JSON.stringify(opts.body);
+    }
+    return fetch(API + path, init).then(function (res) {
+      clearTimeout(timer);
+      return res.json().catch(function () {
+        throw { code: 'NETWORK', message: 'Hitilafu ya mtandao. Jaribu tena.' };
+      }).then(function (j) {
+        if (res.ok && j && j.success !== false) {
+          return (j && 'data' in j) ? j.data : j;
+        }
+        var e = new Error((j && j.message) || 'Hitilafu. Jaribu tena.');
+        e.code = (j && j.code) || ('HTTP_' + res.status);
+        throw e;
+      });
+    }).catch(function (e) {
+      clearTimeout(timer);
+      if (e && e.code) throw e;
+      throw { code: 'NETWORK', message: 'Hakuna mtandao. Jaribu tena.' };
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function fmt(n) { return 'TZS ' + Number(n || 0).toLocaleString('en-US'); }
+  function fmtLimit(mb) {
+    if (!mb || mb <= 0) return '';
+    return mb >= 1024 ? (mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1) + ' GB' : mb + ' MB';
+  }
+  function durLabel(d) { d = Number(d) || 0; return d <= 1 ? 'Saa 24' : 'Siku ' + d; }
+
+  // ── screens ──
+  var SCREENS = ['screenUse', 'screenBuy', 'screenPay', 'screenVoucher', 'screenConnected'];
+  function showScreen(name) {
+    SCREENS.forEach(function (s) { $(s).classList.toggle('hidden', s !== name); });
+    window.scrollTo(0, 0);
+  }
+  function setTab(which) {
+    $('tabUse').classList.toggle('on', which === 'use');
+    $('tabBuy').classList.toggle('on', which === 'buy');
+    showScreen(which === 'use' ? 'screenUse' : 'screenBuy');
+  }
+
+  function setMsg(el, text, type) {
+    el.className = (type || 'err') + (text ? '' : ' hidden');
+    el.textContent = text || '';
+  }
+
+  // ── packages ──
+  var PACKAGES = [];
+  var SELECTED = null;
+  var PHONE_VALID = false;
+
+  function phoneOk(v) { return /^0[67]\d{8}$/.test(v); }
+
+  function selectPkg(id) {
+    SELECTED = null;
+    var btns = document.querySelectorAll('.pkg');
+    for (var i = 0; i < btns.length; i++) {
+      var on = String(btns[i].getAttribute('data-id')) === String(id);
+      btns[i].classList.toggle('sel', on);
+      if (on) {
+        for (var j = 0; j < PACKAGES.length; j++) {
+          if (String(PACKAGES[j].id) === String(id)) SELECTED = PACKAGES[j];
+        }
+      }
+    }
+    updatePayBtn();
+  }
+
+  function updatePayBtn() {
+    var phone = $('phone').value;
+    PHONE_VALID = phoneOk(phone);
+    var hint = phone.length > 0 && !PHONE_VALID;
+    setMsg($('phoneErr'), hint ? 'Namba si sahihi — mfano: 07XXXXXXXX' : '', 'err');
+    $('payBtn').disabled = !SELECTED || !PHONE_VALID;
+  }
+
+  function loadPackages() {
+    $('pkgGrid').innerHTML = '<div class="mini-load">Inapakia vifurushi...</div>';
+    req('/api/v1/packages' + (ROUTER_KEY ? '?router_key=' + encodeURIComponent(ROUTER_KEY) : ''))
+      .then(function (list) {
+        list = (list || []).slice().sort(function (a, b) { return (a.duration_days || 0) - (b.duration_days || 0); });
+        if (!list.length) {
+          $('pkgGrid').innerHTML = '';
+          setMsg($('pkgErr'), 'Hakuna vifurushi vinavyopatikana kwa sasa.', 'err');
+          return;
+        }
+        PACKAGES = list;
+        $('pkgGrid').innerHTML = '';
+        list.forEach(function (p) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'pkg';
+          b.setAttribute('data-id', p.id);
+          var perk = p.data_limit_mb ? '<span class="pk-sub">Data: ' + esc(fmtLimit(p.data_limit_mb)) + '</span>' : '';
+          b.innerHTML = '<span class="tick"></span><span class="pk-name">' + esc(durLabel(p.duration_days)) + '</span>' + perk + '<span class="pk-price">' + fmt(p.price) + '</span>';
+          b.addEventListener('click', (function (id) { return function () { selectPkg(id); }; })(p.id));
+          $('pkgGrid').appendChild(b);
+        });
+      })
+      .catch(function (e) { $('pkgGrid').innerHTML = ''; setMsg($('pkgErr'), e.message, 'err'); });
+  }
+
+  // ── payment ──
+  var pollTimer = null;
+  var pollCount = 0;
+  var REF = null;
+
+  function startPayment() {
+    setMsg($('payErr'), '', 'err');
+    var btn = $('payBtn');
+    btn.disabled = true;
+    btn.textContent = 'Inatuma...';
+    req('/api/v1/payments/mongike', {
+      method: 'POST',
+      body: { phone: $('phone').value, package_id: SELECTED.id, router_key: ROUTER_KEY }
+    }).then(function (d) {
+      btn.disabled = false;
+      btn.textContent = 'Lipa Sasa';
+      if (!d || !d.orderReference) { setMsg($('payErr'), 'Hitilafu. Jaribu tena.', 'err'); return; }
+      startPoll(d.orderReference);
+    }).catch(function (e) {
+      btn.disabled = false;
+      btn.textContent = 'Lipa Sasa';
+      setMsg($('payErr'), e.message, 'err');
+    });
+  }
+
+  function startPoll(ref) {
+    REF = ref;
+    pollCount = 0;
+    $('payTitle').textContent = 'Subiri malipo yathibitishwe';
+    $('payMsg').textContent = 'Angalia simu yako na thibitisha ombi la malipo lililotumwa.';
+    $('payCancelBtn').textContent = 'Ghairi';
+    showScreen('screenPay');
+    pollTimer = setInterval(poll, 1500);
+  }
+
+  function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+  function poll() {
+    pollCount++;
+    if (pollCount > MAX_POLLS) {
+      stopPoll();
+      payFailed('Malipo yalichukua muda mrefu. Jaribu tena.');
+      return;
+    }
+    req('/api/v1/payments/status/' + encodeURIComponent(REF)).then(function (d) {
+      if (d && d.paid && d.voucher_code) { stopPoll(); showVoucher(d.voucher_code); }
+      else if (d && d.status === 'FAILED') { stopPoll(); payFailed('Malipo hayakukamilika. Jaribu tena.'); }
+    }).catch(function () { /* transient — keep polling */ });
+  }
+
+  function payFailed(msg) {
+    $('payTitle').textContent = 'Malipo hayakukamilika';
+    $('payMsg').textContent = msg;
+    $('payCancelBtn').textContent = 'Jaribu Tena';
+  }
+
+  function cancelPay() {
+    stopPoll();
+    setTab('buy');
+    updatePayBtn();
+  }
+
+  // ── voucher screen ──
+  var CURRENT_VOUCHER = '';
+
+  function showVoucher(code) {
+    CURRENT_VOUCHER = code;
+    $('vcodeOut').textContent = code;
+    $('vname').textContent = SELECTED ? SELECTED.name || durLabel(SELECTED.duration_days) : '';
+    $('vprice').textContent = SELECTED ? fmt(SELECTED.price) : '';
+    $('copyBtn').textContent = 'Copy Vocha';
+    showScreen('screenVoucher');
+  }
+
+  function copyCode() {
+    var done = function () {
+      $('copyBtn').textContent = 'Imenakiliwa ✓';
+      setTimeout(function () { $('copyBtn').textContent = 'Copy Vocha'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(CURRENT_VOUCHER).then(done, function () { legacyCopy(CURRENT_VOUCHER); done(); });
+    } else { legacyCopy(CURRENT_VOUCHER); done(); }
+  }
+  function legacyCopy(t) {
+    var ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  // ── activation ──
+  function voucherErrInfo(e) {
+    var map = {
+      NOT_FOUND: 'Vocha uliyoingiza haipo. Tafadhali nunua vocha.',
+      VOUCHER_ALREADY_USED: 'Vocha imeshatumika.',
+      VOUCHER_EXPIRED: 'Vocha imeisha muda wake.',
+      VOUCHER_DISABLED: 'Vocha hii imesimamishwa. Tafadhali wasiliana na msaada.',
+      ROUTER_NOT_REGISTERED: 'Mtandao huu bado haijaungana. Tafadhali wasiliana na msaada.',
+      ROUTER_MISMATCH: 'Vocha hii ni ya mtandao mwingine. Nunua vocha ya mtandao huu ili kuunganishwa.'
+    };
+    return map[e.code] || e.message;
+  }
+
+  function activate(code) {
+    setMsg($('useMsg'), '', 'err');
+    if (!MAC) {
+      setMsg($('useMsg'), 'Unaweza kununua vocha na kuziona kutoka popote. Lakini ili kuwasha internet, unganisha kwenye mtandao wa SHIMBA WIFI kwanza (WiFi ya Shimba), kisha fungua portal tena kupitia ujumbe wa kuingia (login redirect) wa mtandao huo.', 'notice');
+      return;
+    }
+    var btn = $('useBtn');
+    btn.disabled = true; btn.textContent = 'Inaunganisha...';
+    req('/api/v1/vouchers/activate', {
+      method: 'POST',
+      body: { code: code.toUpperCase().trim(), mac_address: MAC.toUpperCase(), ip_address: IP, router_key: ROUTER_KEY }
+    }).then(function () {
+      btn.disabled = false; btn.textContent = 'Unganisha na WiFi';
+      showScreen('screenConnected');
+      setTimeout(function () {
+        var target = 'https://www.google.com';
+        if (DST && /^https?:\/\//i.test(DST)) target = DST;
+        window.location.href = target;
+      }, 2400);
+    }).catch(function (e) {
+      btn.disabled = false; btn.textContent = 'Unganisha na WiFi';
+      setMsg($('useMsg'), voucherErrInfo(e), 'err');
+    });
+  }
+
+  // ── support phone ──
+  function loadSupport() {
+    req('/api/v1/monitoring/support-phone').then(function (d) {
+      var phone = (d && d.phone) || SUPPORT_FALLBACK;
+      $('supportTel').textContent = phone;
+      $('supportTel').setAttribute('href', 'tel:' + phone);
+    }).catch(function () {});
+  }
+
+  // ── events ──
+  $('tabUse').addEventListener('click', function () { setTab('use'); });
+  $('tabBuy').addEventListener('click', function () { setTab('buy'); updatePayBtn(); });
+
+  $('vcode').addEventListener('input', function () {
+    setMsg($('useMsg'), '', 'err');
+    $('useBtn').disabled = !$('vcode').value.trim();
+  });
+  $('useBtn').addEventListener('click', function () { if ($('vcode').value.trim()) activate($('vcode').value); });
+
+  $('phone').addEventListener('input', updatePayBtn);
+  $('payBtn').addEventListener('click', startPayment);
+  $('payCancelBtn').addEventListener('click', cancelPay);
+  $('copyBtn').addEventListener('click', copyCode);
+  $('useVoucherBtn').addEventListener('click', function () { setTab('use'); $('vcode').value = CURRENT_VOUCHER; $('useBtn').disabled = false; activate(CURRENT_VOUCHER); });
+  $('buyAgainBtn').addEventListener('click', function () { setTab('buy'); updatePayBtn(); });
+
+  // ── init ──
+  loadPackages();
+  loadSupport();
+})();
+</script>
+</body>
+</html>
