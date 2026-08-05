@@ -195,7 +195,7 @@
     <div id="pkgErr" class="err hidden"></div>
 
     <label class="lbl" for="phone">Nambari ya Simu</label>
-    <input id="phone" placeholder="07XXXXXXXX" inputmode="numeric" maxlength="10" autocomplete="off">
+    <input id="phone" placeholder="06XXXXXXXX au 07XXXXXXXX" inputmode="numeric" maxlength="10" autocomplete="off">
     <div id="phoneErr" class="err hidden"></div>
     <div id="payErr" class="err hidden"></div>
 
@@ -383,7 +383,7 @@
     var phone = $('phone').value;
     PHONE_VALID = phoneOk(phone);
     var hint = phone.length > 0 && !PHONE_VALID;
-    setMsg($('phoneErr'), hint ? 'Namba si sahihi — mfano: 07XXXXXXXX' : '', 'err');
+    setMsg($('phoneErr'), hint ? 'Namba si sahihi — mfano: 06XXXXXXXX au 07XXXXXXXX' : '', 'err');
     $('payBtn').disabled = !SELECTED || !PHONE_VALID;
   }
 
