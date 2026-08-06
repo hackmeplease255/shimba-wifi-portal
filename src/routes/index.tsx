@@ -82,6 +82,18 @@ function phoneIsComplete(value: string): boolean {
   return digits.length >= expectedLength;
 }
 
+// Tigo Pesa requires >= 908 TZS. Airtel/Halotel accept 900.
+function isTigoPhone(phone: string): boolean {
+  return /^(\+?2557|07)/.test((phone || "").replace(/\D/g, "").replace(/^\+/, ""));
+}
+
+function effectivePrice(pkg: Package | null, phone: string): number {
+  if (!pkg) return 0;
+  const price = Number(pkg.price || 0);
+  if (isTigoPhone(phone) && price < 908) return 908;
+  return price;
+}
+
 function Index() {
   const [tab, setTab] = useState<Tab>("use");
   const [prefillCode, setPrefillCode] = useState("");
@@ -624,7 +636,12 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 flex items-center justify-between gap-3">
           <span className="text-sm text-emerald-800">
             <span className="font-semibold">Selected:</span>{" "}
-            <span className="font-bold">{selectedPackage.name} — {formatTZS(selectedPackage.price)}</span>
+            <span className="font-bold">
+              {selectedPackage.name} — {formatTZS(selectedPackage.price)}
+              {isTigoPhone(phone) && effectivePrice(selectedPackage, phone) > Number(selectedPackage.price || 0) && (
+                <span className="text-amber-700"> (utalipwa {formatTZS(effectivePrice(selectedPackage, phone))} kwa Tigo)</span>
+              )}
+            </span>
           </span>
           <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
             {packageDurationLabel(selectedPackage.duration_days)}
