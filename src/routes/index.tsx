@@ -16,7 +16,6 @@ import {
   Copy,
   Info,
   Check,
-  Smartphone,
 } from "lucide-react";
 
 import { api, ApiError, type Package } from "../lib/api/endpoints";
@@ -581,9 +580,6 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
         </p>
       </div>
 
-      {/* Mobile money networks we accept */}
-      <NetworkStrip />
-
       <div className="space-y-2">
         <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Chagua Kifurushi
@@ -659,36 +655,6 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
         Baada ya malipo kuthibitishwa, voucher itatengenezwa moja kwa moja na kuonyeshwa hapa.
       </p>
     </form>
-  );
-}
-
-const SUPPORTED_NETWORKS = [
-  { name: "Tigo", color: "#1e8fe0" },
-  { name: "Airtel", color: "#e3120b" },
-  { name: "Halotel", color: "#7c3aed" },
-  { name: "TTCL", color: "#0284c7" },
-  { name: "Zantel", color: "#f59e0b" },
-];
-
-function NetworkStrip() {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-3">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-        <Smartphone className="h-3.5 w-3.5" />
-        Tunakubali malipo kutoka mitandao hii
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {SUPPORTED_NETWORKS.map((n) => (
-          <span
-            key={n.name}
-            className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700"
-          >
-            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: n.color }} />
-            {n.name}
-          </span>
-        ))}
-      </div>
-    </div>
   );
 }
 
