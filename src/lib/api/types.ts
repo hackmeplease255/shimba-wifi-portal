@@ -42,13 +42,13 @@ export interface PaymentRequest {
   router_key?: string;
 }
 
-// Response from POST /api/v1/payments/mongike
-// Backend returns: { message, orderReference, mongike }
+// Response from POST /api/v1/payments/clickpesa
+// Backend returns: { message, orderReference, clickpesa }
 export interface PaymentCreatedResponse {
   message: string;
   orderReference: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mongike?: any;
+  clickpesa?: any;
 }
 
 // Response from GET /api/v1/payments/status/:reference

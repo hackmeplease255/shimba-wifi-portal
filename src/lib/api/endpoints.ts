@@ -44,11 +44,12 @@ export const api = {
       signal,
     }),
 
-  // ── Payments (Mongike mobile money) ──
-  // POST /api/v1/payments/mongike — initiate a mobile money payment
-  // Backend returns: { message, orderReference, mongike }
+  // ── Payments (ClickPesa mobile money) ──
+  // POST /api/v1/payments/clickpesa — initiate a mobile money payment
+  // The backend keeps /mongike as a legacy alias, but the canonical route is
+  // used here so a redirect cannot interfere with a captive-portal POST.
   createPayment: (payload: PaymentRequest, signal?: AbortSignal) =>
-    apiRequest<PaymentCreatedResponse>("/api/v1/payments/mongike", {
+    apiRequest<PaymentCreatedResponse>("/api/v1/payments/clickpesa", {
       method: "POST",
       body: { phone: payload.phone, package_id: payload.package_id, router_key: payload.router_key || "" },
       signal,

@@ -122,6 +122,7 @@
   .err, .notice { margin-top: 10px; border-radius: 13px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; }
   .err { background: rgba(220,38,38,.09); border: 1px solid rgba(220,38,38,.3); color: #b91c1c; }
   .notice { background: rgba(2,132,199,.08); border: 1px solid rgba(2,132,199,.3); color: #0369a1; }
+  .hint { margin-top: 6px; font-size: 11.5px; color: #64748b; }
 
   /* transient screens */
   .center { text-align: center; padding: 26px 6px 6px; }
@@ -193,7 +194,7 @@
     <div id="pkgErr" class="err hidden"></div>
 
     <label class="lbl" for="phone">Nambari ya Simu</label>
-    <input id="phone" placeholder="06XXXXXXXX au 07XXXXXXXX" inputmode="numeric" maxlength="10" autocomplete="off">
+    <input id="phone" type="tel" placeholder="06XXXXXXXX au 07XXXXXXXX" inputmode="tel" maxlength="13" autocomplete="off">
     <div id="phoneErr" class="err hidden"></div>
     <div id="payErr" class="err hidden"></div>
 
@@ -315,7 +316,7 @@
       if (res.ok && j && j.success !== false) {
         return (j && 'data' in j) ? j.data : j;
       }
-      var err = new Error((j && j.message) || 'Hitilafu. Jaribu tena.');
+      var err = new Error((j && (j.error || j.message)) || 'Hitilafu. Jaribu tena.');
       err.code = (j && j.code) || ('HTTP_' + res.status);
       throw err;
     }).catch(function (e) {
@@ -357,7 +358,23 @@
   var SELECTED = null;
   var PHONE_VALID = false;
 
-  function phoneOk(v) { return /^0[67]\d{8}$/.test(v); }
+  // Accept all valid Tanzanian mobile formats: 07XXXXXXXX, 06XXXXXXXX,
+  // 2557XXXXXXXX, 2556XXXXXXXX, +2557XXXXXXXX, +2556XXXXXXXX.
+  var PHONE_RE = /^(\+?255|0)[67]\d{8}$/;
+  function phoneOk(v) { return PHONE_RE.test(v); }
+
+  // Phone validation UX: never show a red error while the user is still
+  // typing. While the entry is incomplete show a neutral helper instead; the
+  // red error only appears once a COMPLETE number turns out invalid (10-digit
+  // local or 12/13-digit international forms).
+  function phoneState(phone) {
+    if (!phone) return 'empty';
+    if (phoneOk(phone)) return 'ok';
+    var digits = phone.replace(/\D/g, '');
+    var expectedLength = phone.indexOf('+255') === 0 || phone.indexOf('255') === 0 ? 12 : 10;
+    if (digits.length < expectedLength) return 'typing';
+    return 'invalid';
+  }
 
   function selectPkg(id) {
     SELECTED = null;
@@ -376,9 +393,15 @@
 
   function updatePayBtn() {
     var phone = $('phone').value;
-    PHONE_VALID = phoneOk(phone);
-    var hint = phone.length > 0 && !PHONE_VALID;
-    setMsg($('phoneErr'), hint ? 'Namba si sahihi — mfano: 06XXXXXXXX au 07XXXXXXXX' : '', 'err');
+    var state = phoneState(phone);
+    PHONE_VALID = state === 'ok';
+    if (state === 'invalid') {
+      setMsg($('phoneErr'), 'Namba si sahihi — mfano: 06XXXXXXXX au 07XXXXXXXX', 'err');
+    } else if (state === 'typing') {
+      setMsg($('phoneErr'), 'Mfano: 06XXXXXXXX au 07XXXXXXXX', 'hint');
+    } else {
+      setMsg($('phoneErr'), '', 'err');
+    }
     $('payBtn').disabled = !SELECTED || !PHONE_VALID;
   }
 
@@ -415,10 +438,16 @@
 
   function startPayment() {
     setMsg($('payErr'), '', 'err');
+    // Defense-in-depth: Lipa Sasa only ever runs with a valid number, but if
+    // it is somehow pressed with an invalid one, surface the error.
+    if (!phoneOk($('phone').value)) {
+      updatePayBtn();
+      return;
+    }
     var btn = $('payBtn');
     btn.disabled = true;
     btn.textContent = 'Inatuma...';
-    req('/api/v1/payments/mongike', {
+    req('/api/v1/payments/clickpesa', {
       method: 'POST',
       body: { phone: $('phone').value, package_id: SELECTED.id, router_key: ROUTER_KEY }
     }).then(function (d) {
@@ -557,7 +586,11 @@
   });
   $('useBtn').addEventListener('click', function () { if ($('vcode').value.trim()) activate($('vcode').value); });
 
-  $('phone').addEventListener('input', updatePayBtn);
+  $('phone').addEventListener('input', function (e) {
+    e.target.value = e.target.value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '').slice(0, 13);
+    updatePayBtn();
+  });
+  $('phone').addEventListener('blur', updatePayBtn);
   $('payBtn').addEventListener('click', startPayment);
   $('payCancelBtn').addEventListener('click', cancelPay);
   $('copyBtn').addEventListener('click', copyCode);

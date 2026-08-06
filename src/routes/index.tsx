@@ -67,6 +67,21 @@ function packageDurationLabel(days: number): string {
   return `Siku ${days}`;
 }
 
+const TANZANIA_PHONE_RE = /^(?:0[67]\d{8}|\+?255[67]\d{8})$/;
+
+function sanitizePhoneInput(value: string): string {
+  return value
+    .replace(/[^\d+]/g, "")
+    .replace(/(?!^)\+/g, "")
+    .slice(0, 13);
+}
+
+function phoneIsComplete(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  const expectedLength = value.startsWith("+255") || value.startsWith("255") ? 12 : 10;
+  return digits.length >= expectedLength;
+}
+
 function Index() {
   const [tab, setTab] = useState<Tab>("use");
   const [prefillCode, setPrefillCode] = useState("");
@@ -520,7 +535,7 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPackageId || !/^0[67]\d{8}$/.test(phone)) return;
+    if (!selectedPackageId || !TANZANIA_PHONE_RE.test(phone)) return;
     createPayment.mutate();
   };
 
@@ -587,17 +602,17 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
         <input
           id="phone-number"
           value={phone}
-          onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
-          inputMode="numeric"
-          pattern="0[67]\d{8}"
-          placeholder="07XXXXXXXX"
+          onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
+          inputMode="tel"
+          pattern="(?:0[67]\d{8}|\+?255[67]\d{8})"
+          placeholder="07XXXXXXXX au +2557XXXXXXXX"
           autoComplete="off"
           disabled={createPayment.isPending}
           className="w-full h-14 rounded-2xl bg-white border border-slate-200 px-5 text-base font-medium tracking-wide outline-none transition-all duration-300 placeholder:text-muted-foreground/60 focus:border-[var(--brand-pink)] focus:bg-slate-50 focus:shadow-[0_0_0_4px_oklch(0.66_0.24_5_/_15%)] disabled:opacity-60"
         />
-        {phone.length > 0 && !/^0[67]\d{8}$/.test(phone) && (
-          <p className="text-[11px] text-red-600 flex items-center gap-1 mt-1.5">
-            <AlertCircle className="h-3 w-3 shrink-0" /> Namba si sahihi — mfano: 07XXXXXXXX
+        {phone.length > 0 && !TANZANIA_PHONE_RE.test(phone) && (
+          <p className={`text-[11px] flex items-center gap-1 mt-1.5 ${phoneIsComplete(phone) ? "text-red-600" : "text-slate-500"}`}>
+            <AlertCircle className="h-3 w-3 shrink-0" /> {phoneIsComplete(phone) ? "Namba si sahihi — mfano: 07XXXXXXXX" : "Endelea kuandika namba yako ya simu"}
           </p>
         )}
       </div>
@@ -637,7 +652,7 @@ function BuyVoucherForm({ onVoucherIssued }: { onVoucherIssued: (code: string) =
         pendingLabel="Inatuma..."
         icon={<CreditCard className="h-5 w-5" />}
         label="Lipa Sasa"
-        disabled={!selectedPackageId || !/^0[67]\d{8}$/.test(phone) || packagesQuery.isLoading}
+        disabled={!selectedPackageId || !TANZANIA_PHONE_RE.test(phone) || packagesQuery.isLoading}
       />
 
       <p className="text-xs text-muted-foreground text-center leading-relaxed">

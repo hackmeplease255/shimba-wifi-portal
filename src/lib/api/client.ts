@@ -129,31 +129,32 @@ export async function apiRequest<T>(path: string, opts: RequestOptions = {}): Pr
 
   const json = text ? safeJson(text) : undefined;
 
+  const responseObject = json && typeof json === "object" ? (json as Record<string, unknown>) : null;
+  const responseCode = typeof responseObject?.code === "string" ? responseObject.code : undefined;
+  const errorMessage =
+    (typeof responseObject?.error === "string" && responseObject.error) ||
+    (typeof responseObject?.message === "string" && responseObject.message) ||
+    response.statusText ||
+    "Request failed";
+
   if (!response.ok) {
     // Extract error from backend envelope or status text
-    const payload: ApiErrorShape =
-      json && typeof json === "object" && "error" in (json as any)
-        ? {
-            code: (json as any).code || `http_${response.status}`,
-            message: (json as any).error || response.statusText,
-          }
-        : {
-            code: `http_${response.status}`,
-            message: response.statusText || "Request failed",
-          };
-    throw new ApiError(response.status, payload);
+    throw new ApiError(response.status, {
+      code: responseCode || `http_${response.status}`,
+      message: errorMessage,
+    });
   }
 
   // Unwrap the { success: true, data: <T> } envelope
-  if (json && typeof json === "object" && "success" in (json as any)) {
-    const envelope = json as ApiEnvelope<T>;
+  if (responseObject && "success" in responseObject) {
+    const envelope = responseObject as unknown as ApiEnvelope<T>;
     if (envelope.success && envelope.data !== undefined) {
       return envelope.data as T;
     }
-    if (!envelope.success && envelope.error) {
+    if (!envelope.success) {
       throw new ApiError(response.status, {
-        code: envelope.code || "BUSINESS_ERROR",
-        message: envelope.error,
+        code: envelope.code || responseCode || "BUSINESS_ERROR",
+        message: errorMessage,
       });
     }
   }
