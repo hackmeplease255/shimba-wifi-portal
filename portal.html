@@ -198,7 +198,6 @@
     <label class="lbl" for="phone">Nambari ya Simu</label>
     <input id="phone" type="tel" placeholder="06XXXXXXXX au 07XXXXXXXX" inputmode="tel" maxlength="13" autocomplete="off">
     <div id="phoneErr" class="err hidden"></div>
-    <div id="tigoAdjust" class="hint hidden"></div>
     <div id="payErr" class="err hidden"></div>
 
     <button id="payBtn" class="btn" type="button" disabled>Lipa Sasa</button>
@@ -394,30 +393,6 @@
     updatePayBtn();
   }
 
-  // Tigo Pesa requires >= 908 TZS. Airtel/Halotel accept 900.
-  // Detect Tigo by phone prefix (07…, +2557…, 2557…).
-  function isTigoPhone(phone) {
-    return /^(\+?2557|07)/.test(String(phone || '').replace(/\D/g, '').replace(/^\+/, ''));
-  }
-
-  function effectivePrice(pkg, phone) {
-    if (!pkg) return 0;
-    var price = Number(pkg.price || 0);
-    if (isTigoPhone(phone) && price < 908) return 908;
-    return price;
-  }
-
-  function updateTigoNotice(phone) {
-    if (!SELECTED) { setMsg($('tigoAdjust'), '', 'hint'); return; }
-    var eff = effectivePrice(SELECTED, phone);
-    var orig = Number(SELECTED.price || 0);
-    if (isTigoPhone(phone) && eff > orig) {
-      setMsg($('tigoAdjust'), 'Tigo Pesa: utalipwa TZS ' + eff.toLocaleString('en-US') + ' (kiwango cha chini cha Tigo)', 'hint');
-    } else if (SELECTED) {
-      setMsg($('tigoAdjust'), 'Utalipwa: TZS ' + orig.toLocaleString('en-US'), 'hint');
-    }
-  }
-
   function updatePayBtn() {
     var phone = $('phone').value;
     var state = phoneState(phone);
@@ -429,7 +404,6 @@
     } else {
       setMsg($('phoneErr'), '', 'err');
     }
-    updateTigoNotice(phone);
     $('payBtn').disabled = !SELECTED || !PHONE_VALID;
   }
 
