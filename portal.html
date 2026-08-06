@@ -33,7 +33,8 @@
     color: #047857; font-size: 9px; font-weight: 800; letter-spacing: 1px;
     border-radius: 999px; padding: 2px 8px; text-transform: uppercase;
   }
-  .live i { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; margin-right: 5px; animation: pulse 1.6s infinite; }
+  .live i { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; margin-right: 5px; -webkit-animation: pulse 1.6s infinite; animation: pulse 1.6s infinite; }
+@-webkit-keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
   /* tabs */
@@ -43,7 +44,7 @@
     font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer; font-family: inherit;
   }
   .tab + .tab { margin-left: 4px; }
-  .tab.on { background: linear-gradient(135deg, #e0115f, #7c3aed); color: #fff; }
+  .tab.on { background: -webkit-linear-gradient(135deg, #e0115f, #7c3aed); background: linear-gradient(135deg, #e0115f, #7c3aed); color: #fff; }
 
   .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 18px; padding: 14px; }
   .screen h2 { font-size: 16px; font-weight: 800; }
@@ -68,7 +69,7 @@
     background: #fff; border: 2px solid #e2e8f0; border-radius: 14px; padding: 11px 12px;
     display: flex; flex-direction: column; min-height: 74px;
   }
-  .pkg:active { transform: scale(.985); }
+  .pkg:active { -webkit-transform: scale(.985); transform: scale(.985); }
   .pkg.sel { border-color: #e0115f; background: #fff0f6; }
   .pkg .tick {
     position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
@@ -98,7 +99,7 @@
     border-radius: 14px; height: 48px; margin-top: 12px;
     box-shadow: 0 10px 24px -12px #e0115f;
   }
-  .btn:active { transform: scale(.985); }
+  .btn:active { -webkit-transform: scale(.985); transform: scale(.985); }
   .btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
   .btn.ghost {
     background: #fff; color: #0f172a; border: 1px solid #e2e8f0;
@@ -131,6 +132,7 @@
     border: 3px solid rgba(224,17,95,.15); border-top-color: #e0115f;
     animation: spin .8s linear infinite;
   }
+@-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
   @keyframes spin { to { transform: rotate(360deg); } }
   .ok {
     width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 50%;
